@@ -1,0 +1,76 @@
+# SynthSeg --parc (Desikan-Killiany cortical parcellation) labelling
+# Job for Dataset047_Brain_MR_Lobes_Bilateral.
+#
+# Same image and manifest as the base Job, just with --mode parc, which
+# adds --parc to the SynthSeg CLI. Output goes to a separate
+# intermediate root (synthseg_parc/) so 045/047/048 stay cleanly
+# partitioned on disk.
+#
+# Throughput similar to base mode (~90s/subject); +20-30% for the
+# parcellation. ~6h wall-time on 10 shards × ~192 subjects.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: synthseg-parc
+  namespace: model-factory
+  labels:
+    app.kubernetes.io/managed-by: modelfactory
+    factory.io/component: label-generation
+    factory.io/labeller: synthseg-parc
+    kueue.x-k8s.io/queue-name: factory-lq
+    # Label-gen is background prep — must NOT preempt fold training.
+    # See synthseg-label-base-job.yaml for the priority-inversion
+    # incident that drove this from `interactive-eval` → `hpo-sweep`.
+    kueue.x-k8s.io/priority-class: hpo-sweep
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 604800
+  completions: 10
+  parallelism: 10
+  completionMode: Indexed
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: modelfactory
+        factory.io/component: label-generation
+        factory.io/labeller: synthseg-parc
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        factory.io/training: "true"
+      containers:
+      - name: labeller
+        image: synthseg-labeler:2026-05-13b
+        imagePullPolicy: IfNotPresent
+        env:
+        - { name: PYTHONPATH,        value: "/opt/synthseg:/code/src" }
+        - { name: SYNTHSEG_THREADS,  value: "4" }
+        - { name: TF_NUM_INTEROP_THREADS, value: "1" }
+        - { name: TF_NUM_INTRAOP_THREADS, value: "4" }
+        command: ["sh", "-c"]
+        args:
+        - |
+          python -m modelfactory.labelers.fomo_synthseg \
+            --manifest /factory/intermediate/Dataset045_manifest.tsv \
+            --out-root /factory/intermediate/synthseg_parc \
+            --mode parc \
+            --shard "${JOB_COMPLETION_INDEX}" \
+            --of 10 -v
+        resources:
+          requests: { cpu: "5",  memory: "16Gi" }
+          limits:   { cpu: "8",  memory: "32Gi" }
+        volumeMounts:
+        - { name: fomo,         mountPath: /data/FOMO300K, readOnly: true }
+        - { name: factory-data, mountPath: /factory }
+        - { name: code,         mountPath: /code,      readOnly: true }
+        - { name: synthseg-models, mountPath: /opt/synthseg/models, readOnly: true }
+      volumes:
+      - name: fomo
+        hostPath: { path: /data/FOMO300K,            type: Directory }
+      - name: synthseg-models
+        hostPath: { path: /data/synthseg_models,     type: Directory }
+      - name: factory-data
+        hostPath: { path: /data/model-factory-nfs,   type: Directory }
+      - name: code
+        hostPath: { path: /data/model-factory,       type: Directory }

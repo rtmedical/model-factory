@@ -1,0 +1,48 @@
+# PostgreSQL backend for MLflow's tracking server.
+# - Single primary, no replica (single-node cluster, no HA target)
+# - PVC backed by the existing nfs-client StorageClass
+# - Credentials are placeholder; replace via secrets.yaml or `helm --set` at deploy time
+#
+# Bitnami deprecated their free public images on 2025-08-28; the chart's
+# default `docker.io/bitnami/postgresql:...` tags 404. We point at the
+# `bitnamilegacy/*` mirror that still serves the old free tags.
+
+image:
+  repository: bitnamilegacy/postgresql
+
+auth:
+  username: mlflow
+  database: mlflow
+  # Pulls passwords from a secret we pre-create (infra/kustomize/secrets.yaml):
+  #   data.password           → password for user "mlflow"
+  #   data.postgres-password  → superuser password (postgres role)
+  # Must be applied BEFORE `helm upgrade --install factory-pg ...` or the
+  # chart will generate its own random passwords on first deploy.
+  existingSecret: factory-pg-postgresql
+
+primary:
+  persistence:
+    enabled: true
+    storageClass: nfs-client
+    size: 50Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 4
+      memory: 4Gi
+  # Postgres on NFS — disable fsync optimization to avoid corruption.
+  # The nfs-client provisioner gives us a plain NFS mount; Postgres needs
+  # synchronous writes guaranteed by the server. Bitnami's chart respects
+  # postgresqlExtendedConf for tuning.
+  postgresqlExtendedConf:
+    shared_buffers: "512MB"
+    work_mem: "32MB"
+    maintenance_work_mem: "256MB"
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: false        # turn on after deploy-monitoring lands (needs monitoring.coreos.com CRDs)
+    namespace: monitoring

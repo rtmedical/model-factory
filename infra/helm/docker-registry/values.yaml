@@ -1,0 +1,42 @@
+# In-cluster Docker registry (registry:2) backed by MinIO.
+# Lets the factory pull trainer images without round-tripping through a public
+# registry. We rely on the cluster's containerd insecure-registries config to
+# allow plain HTTP; expose TLS later if we need image signing.
+
+image:
+  repository: registry
+  tag: "2.8.3"
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 5000
+
+storage: s3
+secrets:
+  s3:
+    accessKey: factoryadmin
+    # use --set or existingSecret
+    secretKey: ""
+
+s3:
+  region: us-east-1
+  regionEndpoint: http://factory-minio.model-factory.svc.cluster.local:9000
+  bucket: images
+  encrypt: false
+  secure: false
+
+ingress:
+  enabled: false
+
+persistence:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 200m
+    memory: 256Mi
+  limits:
+    cpu: 1
+    memory: 1Gi

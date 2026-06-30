@@ -1,0 +1,91 @@
+# kube-prometheus-stack: Prometheus + Grafana + Alertmanager + state metrics.
+# Notes:
+#  - The host already runs a Grafana on :3000 owned by the medgemma team; we add
+#    a SEPARATE in-cluster Grafana reachable via port-forward / ingress.
+#  - The NVIDIA GPU Operator already deploys a DCGM exporter in nvidia-gpu-operator;
+#    we add a ServiceMonitor below so Prometheus scrapes it.
+
+fullnameOverride: kps
+
+prometheus:
+  prometheusSpec:
+    retention: 30d
+    resources:
+      requests: { cpu: 500m, memory: 2Gi }
+      limits:   { cpu: 4,    memory: 8Gi }
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: nfs-client
+          resources:
+            requests:
+              storage: 100Gi
+    # Scrape ServiceMonitors from any namespace — we'll put them next to the workloads.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    # Reasonable defaults
+    scrapeInterval: 30s
+    evaluationInterval: 30s
+
+alertmanager:
+  alertmanagerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: nfs-client
+          resources:
+            requests:
+              storage: 10Gi
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      group_by: ['alertname', 'severity']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'default-webhook'
+    receivers:
+    - name: 'default-webhook'
+      # Replace with real Slack/email config in secrets/alertmanager.yaml at deploy
+      webhook_configs: []
+
+grafana:
+  enabled: true
+  adminPassword: "CHANGEME"  # override via --set or existingSecret
+  persistence:
+    enabled: true
+    storageClassName: nfs-client
+    size: 10Gi
+  service:
+    type: ClusterIP
+  # Datasources: Prometheus (default), Loki (added by loki-stack chart), MLflow Postgres (added below)
+  additionalDataSources:
+  - name: MLflowPostgres
+    type: postgres
+    access: proxy
+    url: factory-pg-postgresql.model-factory.svc.cluster.local:5432
+    database: mlflow
+    user: mlflow
+    secureJsonData:
+      password: ${MLFLOW_PG_PASSWORD}    # set via env from a Secret
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1600
+  # Preload dashboards by sidecar
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      searchNamespace: ALL
+    datasources:
+      enabled: true
+      label: grafana_datasource
+
+# DCGM exporter ServiceMonitor — point at the existing operator-managed Service
+prometheusOperator:
+  admissionWebhooks:
+    failurePolicy: Ignore   # avoid blocking core workloads if webhook misbehaves on this node
+
+# kube-state-metrics, node-exporter come on by default — keep them.

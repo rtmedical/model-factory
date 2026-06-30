@@ -1,0 +1,69 @@
+# claim-mig.sh delivered as a ConfigMap so the bitnami/kubectl init container
+# (which has no /opt/modelfactory) can mount and execute it. Kept in sync with
+# the source-of-truth at images/nnunet-trainer/claim-mig.sh; regenerate via:
+#
+#   kubectl -n model-factory create configmap factory-claim-mig \
+#     --from-file=claim-mig.sh=images/nnunet-trainer/claim-mig.sh \
+#     --dry-run=client -o yaml > infra/kustomize/factory-claim-mig-script-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: factory-claim-mig
+  namespace: model-factory
+  labels:
+    app.kubernetes.io/managed-by: modelfactory
+data:
+  claim-mig.sh: |
+    #!/usr/bin/env bash
+    # Atomically lease one MIG slice for this Ray worker pod.
+    # See images/nnunet-trainer/claim-mig.sh for the canonical source.
+    set -euo pipefail
+
+    NS="${POD_NAMESPACE:-model-factory}"
+    POD="${POD_NAME:?POD_NAME env required (downward API)}"
+    UUIDS_FILE="${UUIDS_FILE:-/etc/mig/uuids.txt}"
+    OUT="${OUT:-/shared/mig.env}"
+    LEASE_CM="${LEASE_CM:-factory-mig-leases}"
+    MAX_TRIES="${MAX_TRIES:-3}"
+
+    mkdir -p "$(dirname "$OUT")"
+
+    if [[ ! -r "$UUIDS_FILE" ]]; then
+      echo "[claim-mig] missing $UUIDS_FILE" >&2
+      exit 2
+    fi
+
+    mapfile -t CANDIDATES < <(grep -Ev '^[[:space:]]*(#|$)' "$UUIDS_FILE")
+    if (( ${#CANDIDATES[@]} == 0 )); then
+      echo "[claim-mig] no UUIDs in $UUIDS_FILE" >&2
+      exit 2
+    fi
+
+    shuf_seed="$(echo -n "$POD" | cksum | awk '{print $1}')"
+    mapfile -t CANDIDATES < <(printf '%s\n' "${CANDIDATES[@]}" | shuf --random-source=<(yes "$shuf_seed" 2>/dev/null) || printf '%s\n' "${CANDIDATES[@]}")
+
+    for try in $(seq 1 "$MAX_TRIES"); do
+      for uuid in "${CANDIDATES[@]}"; do
+        current="$(kubectl -n "$NS" get cm "$LEASE_CM" -o "jsonpath={.data.${uuid}}" 2>/dev/null || echo "")"
+        if [[ "$current" != "available" ]]; then
+          continue
+        fi
+        if kubectl -n "$NS" patch cm "$LEASE_CM" --type json -p \
+            "[{\"op\":\"test\",\"path\":\"/data/${uuid}\",\"value\":\"available\"},
+              {\"op\":\"replace\",\"path\":\"/data/${uuid}\",\"value\":\"${POD}\"}]" \
+            >/dev/null 2>&1; then
+          echo "[claim-mig] $POD claimed $uuid"
+          {
+            echo "export NVIDIA_VISIBLE_DEVICES=${uuid}"
+            echo "export NVIDIA_DRIVER_CAPABILITIES=compute,utility"
+            echo "export MFACTORY_MIG_UUID=${uuid}"
+          } > "$OUT"
+          exit 0
+        fi
+      done
+      echo "[claim-mig] try ${try}: all slots taken or contended, sleeping..." >&2
+      sleep $((RANDOM % 10 + 5))
+    done
+
+    echo "[claim-mig] failed to claim any MIG slice after $MAX_TRIES tries" >&2
+    exit 1

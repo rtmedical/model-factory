@@ -1,0 +1,84 @@
+{# Generic one-shot CPU Job that runs `modelfactory.datasets.convert`
+   for one (spec, source) pair, producing the nnUNet raw layout under
+   /factory/datasets/<DatasetXXX_Name>/.
+
+   Substitutions:
+     spec_key       e.g. "pelvis_male_prostate"
+     spec_slug      kebab-case, used in Job name (e.g. "pelvis-male-prostate")
+     source_type    "rtstruct" or "pddca"
+     workers        worker count (default 16 for rtstruct, 4 for pddca)
+     limit          optional --limit N for smoke runs (omit or set to "")
+
+   Mounts:
+     /data/<your-source>   → /in       readOnly
+     /data/model-factory-nfs → /factory
+     /data/model-factory   → /code     readOnly  (the modelfactory package)
+#}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: convert-{{ spec_slug }}
+  namespace: model-factory
+  labels:
+    app.kubernetes.io/managed-by: modelfactory
+    factory.io/component: convert
+    factory.io/spec: {{ spec_slug }}
+    factory.io/source: {{ source_type }}
+    kueue.x-k8s.io/queue-name: factory-lq
+    # Convert is background prep — must NOT preempt fold training.
+    # See kueue_priority_class_lesson.md for the 2026-05-13 incident.
+    kueue.x-k8s.io/priority-class: hpo-sweep
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 604800
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: modelfactory
+        factory.io/component: convert
+        factory.io/spec: {{ spec_slug }}
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        factory.io/training: "true"
+      containers:
+      - name: convert
+        image: nnunet-trainer:2026-05-13
+        imagePullPolicy: IfNotPresent
+        env:
+        - { name: PYTHONPATH, value: "/code/src" }
+        command:
+        - python
+        - -m
+        - modelfactory.datasets.convert
+        - --spec
+        - "{{ spec_key }}"
+        - --source
+        - "{{ source_type }}"
+        - --out
+        - /factory
+        - --workers
+        - "{{ workers }}"
+        - --limit
+        - "{{ limit | default(0) }}"
+        - -v
+        resources:
+          # cpu_request may be set well below `workers` when the node is already
+          # CPU-saturated by training (the Ray worker pods hold ~196/208 cores as
+          # reservations): a small request schedules into the sliver while the
+          # high limit lets the `workers` processes burst into whatever cores the
+          # trainers aren't using. Defaults preserve the original workers-tied
+          # behaviour for idle-pool converts.
+          requests: { cpu: "{{ cpu_request | default(workers) }}", memory: "{{ memory_request }}" }
+          limits:   { cpu: "{{ cpu_limit | default(workers * 2) }}", memory: "{{ memory_limit }}" }
+        volumeMounts:
+        - { name: cancer-archive, mountPath: /in,       readOnly: true }
+        - { name: factory-data,   mountPath: /factory }
+        - { name: code,           mountPath: /code,     readOnly: true }
+      volumes:
+      - name: cancer-archive
+        hostPath: { path: /data/source,                type: Directory }  # set to your source-data root
+      - name: factory-data
+        hostPath: { path: /data/model-factory-nfs,     type: DirectoryOrCreate }
+      - name: code
+        hostPath: { path: /data/model-factory,         type: Directory }

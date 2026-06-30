@@ -1,0 +1,1381 @@
+apiVersion: ray.io/v1
+kind: RayCluster
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"ray.io/v1","kind":"RayCluster","metadata":{"annotations":{},"labels":{"app.kubernetes.io/managed-by":"modelfactory"},"name":"factory-ray","namespace":"model-factory"},"spec":{"enableInTreeAutoscaling":false,"headGroupSpec":{"rayStartParams":{"dashboard-host":"0.0.0.0","num-cpus":"2","num-gpus":"0"},"template":{"metadata":{"labels":{"app.kubernetes.io/managed-by":"modelfactory","ray.io/cluster":"factory-ray"}},"spec":{"containers":[{"env":[{"name":"MLFLOW_TRACKING_URI","value":"http://mlflow:5000"},{"name":"MLFLOW_S3_ENDPOINT_URL","value":"http://factory-minio:9000"},{"name":"AWS_ACCESS_KEY_ID","valueFrom":{"secretKeyRef":{"key":"root-user","name":"factory-minio"}}},{"name":"AWS_SECRET_ACCESS_KEY","valueFrom":{"secretKeyRef":{"key":"root-password","name":"factory-minio"}}},{"name":"MLFLOW_TRACKING_USERNAME","valueFrom":{"secretKeyRef":{"key":"admin-username","name":"mlflow-credentials"}}},{"name":"MLFLOW_TRACKING_PASSWORD","valueFrom":{"secretKeyRef":{"key":"admin-password","name":"mlflow-credentials"}}}],"image":"nnunet-trainer:0.3.0-ray","imagePullPolicy":"IfNotPresent","name":"ray-head","ports":[{"containerPort":6379,"name":"gcs"},{"containerPort":8265,"name":"dashboard"},{"containerPort":10001,"name":"client"}],"resources":{"limits":{"cpu":"4","memory":"16Gi"},"requests":{"cpu":"2","memory":"8Gi"}},"volumeMounts":[{"mountPath":"/factory","name":"factory-data"}]}],"dnsConfig":{"options":[{"name":"ndots","value":"1"}]},"nodeSelector":{"factory.io/training":"true"},"volumes":[{"hostPath":{"path":"/data/model-factory-nfs","type":"Directory"},"name":"factory-data"}]}}},"rayVersion":"2.40.0","workerGroupSpecs":[{"groupName":"mig-0","maxReplicas":1,"minReplicas":1,"rayStartParams":{"num-cpus":"20","num-gpus":"1"},"replicas":1,"template":{"metadata":{"labels":{"app.kubernetes.io/managed-by":"modelfactory","ray.io/cluster":"factory-ray"}},"spec":{"containers":[{"env":[{"name":"NVIDIA_VISIBLE_DEVICES","value":"MIG-e934d59a-8527-5161-b8fd-989c68836b21"},{"name":"NVIDIA_DRIVER_CAPABILITIES","value":"compute,utility"},{"name":"MLFLOW_TRACKING_URI","value":"http://mlflow:5000"},{"name":"MLFLOW_S3_ENDPOINT_URL","value":"http://factory-minio:9000"},{"name":"AWS_ACCESS_KEY_ID","valueFrom":{"secretKeyRef":{"key":"root-user","name":"factory-minio"}}},{"name":"AWS_SECRET_ACCESS_KEY","valueFrom":{"secretKeyRef":{"key":"root-password","name":"factory-minio"}}},{"name":"MLFLOW_TRACKING_USERNAME","valueFrom":{"secretKeyRef":{"key":"admin-username","name":"mlflow-credentials"}}},{"name":"MLFLOW_TRACKING_PASSWORD","valueFrom":{"secretKeyRef":{"key":"admin-password","name":"mlflow-credentials"}}},{"name":"nnUNet_raw","value":"/factory/datasets"},{"name":"nnUNet_preprocessed","value":"/factory-ram/preprocessed"},{"name":"nnUNet_results","value":"/factory/results"},{"name":"nnUNet_n_proc_DA","value":"18"}],"image":"nnunet-trainer:0.3.0-ray","imagePullPolicy":"IfNotPresent","name":"ray-worker","resources":{"limits":{"cpu":"28","memory":"160Gi"},"requests":{"cpu":"18","memory":"48Gi"}},"volumeMounts":[{"mountPath":"/factory","name":"factory-data"},{"mountPath":"/dev/shm","name":"dshm"},{"mountPath":"/factory-ram","name":"factory-ram"}]}],"dnsConfig":{"options":[{"name":"ndots","value":"1"}]},"nodeSelector":{"factory.io/training":"true"},"runtimeClassName":"nvidia-legacy","volumes":[{"hostPath":{"path":"/data/model-factory-nfs","type":"Directory"},"name":"factory-data"},{"emptyDir":{"medium":"Memory","sizeLimit":"32Gi"},"name":"dshm"},{"emptyDir":{"medium":"Memory","sizeLimit":"110Gi"},"name":"factory-ram"}]}}},{"groupName":"mig-1","maxReplicas":1,"minReplicas":1,"rayStartParams":{"num-cpus":"20","num-gpus":"1"},"replicas":1,"template":{"metadata":{"labels":{"app.kubernetes.io/managed-by":"modelfactory","ray.io/cluster":"factory-ray"}},"spec":{"containers":[{"env":[{"name":"NVIDIA_VISIBLE_DEVICES","value":"MIG-4e48e45e-7213-5ab8-bc3c-f761330eb14e"},{"name":"NVIDIA_DRIVER_CAPABILITIES","value":"compute,utility"},{"name":"MLFLOW_TRACKING_URI","value":"http://mlflow:5000"},{"name":"MLFLOW_S3_ENDPOINT_URL","value":"http://factory-minio:9000"},{"name":"AWS_ACCESS_KEY_ID","valueFrom":{"secretKeyRef":{"key":"root-user","name":"factory-minio"}}},{"name":"AWS_SECRET_ACCESS_KEY","valueFrom":{"secretKeyRef":{"key":"root-password","name":"factory-minio"}}},{"name":"MLFLOW_TRACKING_USERNAME","valueFrom":{"secretKeyRef":{"key":"admin-username","name":"mlflow-credentials"}}},{"name":"MLFLOW_TRACKING_PASSWORD","valueFrom":{"secretKeyRef":{"key":"admin-password","name":"mlflow-credentials"}}},{"name":"nnUNet_raw","value":"/factory/datasets"},{"name":"nnUNet_preprocessed","value":"/factory-ram/preprocessed"},{"name":"nnUNet_results","value":"/factory/results"},{"name":"nnUNet_n_proc_DA","value":"18"}],"image":"nnunet-trainer:0.3.0-ray","imagePullPolicy":"IfNotPresent","name":"ray-worker","resources":{"limits":{"cpu":"28","memory":"160Gi"},"requests":{"cpu":"18","memory":"48Gi"}},"volumeMounts":[{"mountPath":"/factory","name":"factory-data"},{"mountPath":"/dev/shm","name":"dshm"},{"mountPath":"/factory-ram","name":"factory-ram"}]}],"dnsConfig":{"options":[{"name":"ndots","value":"1"}]},"nodeSelector":{"factory.io/training":"true"},"runtimeClassName":"nvidia-legacy","volumes":[{"hostPath":{"path":"/data/model-factory-nfs","type":"Directory"},"name":"factory-data"},{"emptyDir":{"medium":"Memory","sizeLimit":"32Gi"},"name":"dshm"},{"emptyDir":{"medium":"Memory","sizeLimit":"110Gi"},"name":"factory-ram"}]}}},{"groupName":"mig-2","maxReplicas":1,"minReplicas":1,"rayStartParams":{"num-cpus":"20","num-gpus":"1"},"replicas":1,"template":{"metadata":{"labels":{"app.kubernetes.io/managed-by":"modelfactory","ray.io/cluster":"factory-ray"}},"spec":{"containers":[{"env":[{"name":"NVIDIA_VISIBLE_DEVICES","value":"MIG-1c18b741-02a7-501c-bf39-a9a90624a10d"},{"name":"NVIDIA_DRIVER_CAPABILITIES","value":"compute,utility"},{"name":"MLFLOW_TRACKING_URI","value":"http://mlflow:5000"},{"name":"MLFLOW_S3_ENDPOINT_URL","value":"http://factory-minio:9000"},{"name":"AWS_ACCESS_KEY_ID","valueFrom":{"secretKeyRef":{"key":"root-user","name":"factory-minio"}}},{"name":"AWS_SECRET_ACCESS_KEY","valueFrom":{"secretKeyRef":{"key":"root-password","name":"factory-minio"}}},{"name":"MLFLOW_TRACKING_USERNAME","valueFrom":{"secretKeyRef":{"key":"admin-username","name":"mlflow-credentials"}}},{"name":"MLFLOW_TRACKING_PASSWORD","valueFrom":{"secretKeyRef":{"key":"admin-password","name":"mlflow-credentials"}}},{"name":"nnUNet_raw","value":"/factory/datasets"},{"name":"nnUNet_preprocessed","value":"/factory-ram/preprocessed"},{"name":"nnUNet_results","value":"/factory/results"},{"name":"nnUNet_n_proc_DA","value":"18"}],"image":"nnunet-trainer:0.3.0-ray","imagePullPolicy":"IfNotPresent","name":"ray-worker","resources":{"limits":{"cpu":"28","memory":"160Gi"},"requests":{"cpu":"18","memory":"48Gi"}},"volumeMounts":[{"mountPath":"/factory","name":"factory-data"},{"mountPath":"/dev/shm","name":"dshm"},{"mountPath":"/factory-ram","name":"factory-ram"}]}],"dnsConfig":{"options":[{"name":"ndots","value":"1"}]},"nodeSelector":{"factory.io/training":"true"},"runtimeClassName":"nvidia-legacy","volumes":[{"hostPath":{"path":"/data/model-factory-nfs","type":"Directory"},"name":"factory-data"},{"emptyDir":{"medium":"Memory","sizeLimit":"32Gi"},"name":"dshm"},{"emptyDir":{"medium":"Memory","sizeLimit":"110Gi"},"name":"factory-ram"}]}}},{"groupName":"mig-3","maxReplicas":1,"minReplicas":1,"rayStartParams":{"num-cpus":"20","num-gpus":"1"},"replicas":1,"template":{"metadata":{"labels":{"app.kubernetes.io/managed-by":"modelfactory","ray.io/cluster":"factory-ray"}},"spec":{"containers":[{"env":[{"name":"NVIDIA_VISIBLE_DEVICES","value":"MIG-8192150b-48e2-5a56-b635-1d6ef30e84f1"},{"name":"NVIDIA_DRIVER_CAPABILITIES","value":"compute,utility"},{"name":"MLFLOW_TRACKING_URI","value":"http://mlflow:5000"},{"name":"MLFLOW_S3_ENDPOINT_URL","value":"http://factory-minio:9000"},{"name":"AWS_ACCESS_KEY_ID","valueFrom":{"secretKeyRef":{"key":"root-user","name":"factory-minio"}}},{"name":"AWS_SECRET_ACCESS_KEY","valueFrom":{"secretKeyRef":{"key":"root-password","name":"factory-minio"}}},{"name":"MLFLOW_TRACKING_USERNAME","valueFrom":{"secretKeyRef":{"key":"admin-username","name":"mlflow-credentials"}}},{"name":"MLFLOW_TRACKING_PASSWORD","valueFrom":{"secretKeyRef":{"key":"admin-password","name":"mlflow-credentials"}}},{"name":"nnUNet_raw","value":"/factory/datasets"},{"name":"nnUNet_preprocessed","value":"/factory-ram/preprocessed"},{"name":"nnUNet_results","value":"/factory/results"},{"name":"nnUNet_n_proc_DA","value":"18"}],"image":"nnunet-trainer:0.3.0-ray","imagePullPolicy":"IfNotPresent","name":"ray-worker","resources":{"limits":{"cpu":"28","memory":"160Gi"},"requests":{"cpu":"18","memory":"48Gi"}},"volumeMounts":[{"mountPath":"/factory","name":"factory-data"},{"mountPath":"/dev/shm","name":"dshm"},{"mountPath":"/factory-ram","name":"factory-ram"}]}],"dnsConfig":{"options":[{"name":"ndots","value":"1"}]},"nodeSelector":{"factory.io/training":"true"},"runtimeClassName":"nvidia-legacy","volumes":[{"hostPath":{"path":"/data/model-factory-nfs","type":"Directory"},"name":"factory-data"},{"emptyDir":{"medium":"Memory","sizeLimit":"32Gi"},"name":"dshm"},{"emptyDir":{"medium":"Memory","sizeLimit":"110Gi"},"name":"factory-ram"}]}}},{"groupName":"mig-4","maxReplicas":1,"minReplicas":1,"rayStartParams":{"num-cpus":"20","num-gpus":"1"},"replicas":1,"template":{"metadata":{"labels":{"app.kubernetes.io/managed-by":"modelfactory","ray.io/cluster":"factory-ray"}},"spec":{"containers":[{"env":[{"name":"NVIDIA_VISIBLE_DEVICES","value":"MIG-71d9d40f-7d1a-51a0-95f8-c425b9545e02"},{"name":"NVIDIA_DRIVER_CAPABILITIES","value":"compute,utility"},{"name":"MLFLOW_TRACKING_URI","value":"http://mlflow:5000"},{"name":"MLFLOW_S3_ENDPOINT_URL","value":"http://factory-minio:9000"},{"name":"AWS_ACCESS_KEY_ID","valueFrom":{"secretKeyRef":{"key":"root-user","name":"factory-minio"}}},{"name":"AWS_SECRET_ACCESS_KEY","valueFrom":{"secretKeyRef":{"key":"root-password","name":"factory-minio"}}},{"name":"MLFLOW_TRACKING_USERNAME","valueFrom":{"secretKeyRef":{"key":"admin-username","name":"mlflow-credentials"}}},{"name":"MLFLOW_TRACKING_PASSWORD","valueFrom":{"secretKeyRef":{"key":"admin-password","name":"mlflow-credentials"}}},{"name":"nnUNet_raw","value":"/factory/datasets"},{"name":"nnUNet_preprocessed","value":"/factory-ram/preprocessed"},{"name":"nnUNet_results","value":"/factory/results"},{"name":"nnUNet_n_proc_DA","value":"18"}],"image":"nnunet-trainer:0.3.0-ray","imagePullPolicy":"IfNotPresent","name":"ray-worker","resources":{"limits":{"cpu":"28","memory":"160Gi"},"requests":{"cpu":"18","memory":"48Gi"}},"volumeMounts":[{"mountPath":"/factory","name":"factory-data"},{"mountPath":"/dev/shm","name":"dshm"},{"mountPath":"/factory-ram","name":"factory-ram"}]}],"dnsConfig":{"options":[{"name":"ndots","value":"1"}]},"nodeSelector":{"factory.io/training":"true"},"runtimeClassName":"nvidia-legacy","volumes":[{"hostPath":{"path":"/data/model-factory-nfs","type":"Directory"},"name":"factory-data"},{"emptyDir":{"medium":"Memory","sizeLimit":"32Gi"},"name":"dshm"},{"emptyDir":{"medium":"Memory","sizeLimit":"110Gi"},"name":"factory-ram"}]}}},{"groupName":"mig-5","maxReplicas":1,"minReplicas":1,"rayStartParams":{"num-cpus":"20","num-gpus":"1"},"replicas":1,"template":{"metadata":{"labels":{"app.kubernetes.io/managed-by":"modelfactory","ray.io/cluster":"factory-ray"}},"spec":{"containers":[{"env":[{"name":"NVIDIA_VISIBLE_DEVICES","value":"MIG-a0015c8c-dcec-5d65-b291-23838d34891b"},{"name":"NVIDIA_DRIVER_CAPABILITIES","value":"compute,utility"},{"name":"MLFLOW_TRACKING_URI","value":"http://mlflow:5000"},{"name":"MLFLOW_S3_ENDPOINT_URL","value":"http://factory-minio:9000"},{"name":"AWS_ACCESS_KEY_ID","valueFrom":{"secretKeyRef":{"key":"root-user","name":"factory-minio"}}},{"name":"AWS_SECRET_ACCESS_KEY","valueFrom":{"secretKeyRef":{"key":"root-password","name":"factory-minio"}}},{"name":"MLFLOW_TRACKING_USERNAME","valueFrom":{"secretKeyRef":{"key":"admin-username","name":"mlflow-credentials"}}},{"name":"MLFLOW_TRACKING_PASSWORD","valueFrom":{"secretKeyRef":{"key":"admin-password","name":"mlflow-credentials"}}},{"name":"nnUNet_raw","value":"/factory/datasets"},{"name":"nnUNet_preprocessed","value":"/factory-ram/preprocessed"},{"name":"nnUNet_results","value":"/factory/results"},{"name":"nnUNet_n_proc_DA","value":"18"}],"image":"nnunet-trainer:0.3.0-ray","imagePullPolicy":"IfNotPresent","name":"ray-worker","resources":{"limits":{"cpu":"28","memory":"160Gi"},"requests":{"cpu":"18","memory":"48Gi"}},"volumeMounts":[{"mountPath":"/factory","name":"factory-data"},{"mountPath":"/dev/shm","name":"dshm"},{"mountPath":"/factory-ram","name":"factory-ram"}]}],"dnsConfig":{"options":[{"name":"ndots","value":"1"}]},"nodeSelector":{"factory.io/training":"true"},"runtimeClassName":"nvidia-legacy","volumes":[{"hostPath":{"path":"/data/model-factory-nfs","type":"Directory"},"name":"factory-data"},{"emptyDir":{"medium":"Memory","sizeLimit":"32Gi"},"name":"dshm"},{"emptyDir":{"medium":"Memory","sizeLimit":"110Gi"},"name":"factory-ram"}]}}},{"groupName":"mig-6","maxReplicas":1,"minReplicas":1,"rayStartParams":{"num-cpus":"20","num-gpus":"1"},"replicas":1,"template":{"metadata":{"labels":{"app.kubernetes.io/managed-by":"modelfactory","ray.io/cluster":"factory-ray"}},"spec":{"containers":[{"env":[{"name":"NVIDIA_VISIBLE_DEVICES","value":"MIG-c0f33cbf-4ab1-5d6c-8e65-91be2a7beaf0"},{"name":"NVIDIA_DRIVER_CAPABILITIES","value":"compute,utility"},{"name":"MLFLOW_TRACKING_URI","value":"http://mlflow:5000"},{"name":"MLFLOW_S3_ENDPOINT_URL","value":"http://factory-minio:9000"},{"name":"AWS_ACCESS_KEY_ID","valueFrom":{"secretKeyRef":{"key":"root-user","name":"factory-minio"}}},{"name":"AWS_SECRET_ACCESS_KEY","valueFrom":{"secretKeyRef":{"key":"root-password","name":"factory-minio"}}},{"name":"MLFLOW_TRACKING_USERNAME","valueFrom":{"secretKeyRef":{"key":"admin-username","name":"mlflow-credentials"}}},{"name":"MLFLOW_TRACKING_PASSWORD","valueFrom":{"secretKeyRef":{"key":"admin-password","name":"mlflow-credentials"}}},{"name":"nnUNet_raw","value":"/factory/datasets"},{"name":"nnUNet_preprocessed","value":"/factory-ram/preprocessed"},{"name":"nnUNet_results","value":"/factory/results"},{"name":"nnUNet_n_proc_DA","value":"18"}],"image":"nnunet-trainer:0.3.0-ray","imagePullPolicy":"IfNotPresent","name":"ray-worker","resources":{"limits":{"cpu":"28","memory":"160Gi"},"requests":{"cpu":"18","memory":"48Gi"}},"volumeMounts":[{"mountPath":"/factory","name":"factory-data"},{"mountPath":"/dev/shm","name":"dshm"},{"mountPath":"/factory-ram","name":"factory-ram"}]}],"dnsConfig":{"options":[{"name":"ndots","value":"1"}]},"nodeSelector":{"factory.io/training":"true"},"runtimeClassName":"nvidia-legacy","volumes":[{"hostPath":{"path":"/data/model-factory-nfs","type":"Directory"},"name":"factory-data"},{"emptyDir":{"medium":"Memory","sizeLimit":"32Gi"},"name":"dshm"},{"emptyDir":{"medium":"Memory","sizeLimit":"110Gi"},"name":"factory-ram"}]}}},{"groupName":"mig-7","maxReplicas":1,"minReplicas":1,"rayStartParams":{"num-cpus":"20","num-gpus":"1"},"replicas":1,"template":{"metadata":{"labels":{"app.kubernetes.io/managed-by":"modelfactory","ray.io/cluster":"factory-ray"}},"spec":{"containers":[{"env":[{"name":"NVIDIA_VISIBLE_DEVICES","value":"MIG-91acc84a-83ac-5a11-9c09-aca75ac759cc"},{"name":"NVIDIA_DRIVER_CAPABILITIES","value":"compute,utility"},{"name":"MLFLOW_TRACKING_URI","value":"http://mlflow:5000"},{"name":"MLFLOW_S3_ENDPOINT_URL","value":"http://factory-minio:9000"},{"name":"AWS_ACCESS_KEY_ID","valueFrom":{"secretKeyRef":{"key":"root-user","name":"factory-minio"}}},{"name":"AWS_SECRET_ACCESS_KEY","valueFrom":{"secretKeyRef":{"key":"root-password","name":"factory-minio"}}},{"name":"MLFLOW_TRACKING_USERNAME","valueFrom":{"secretKeyRef":{"key":"admin-username","name":"mlflow-credentials"}}},{"name":"MLFLOW_TRACKING_PASSWORD","valueFrom":{"secretKeyRef":{"key":"admin-password","name":"mlflow-credentials"}}},{"name":"nnUNet_raw","value":"/factory/datasets"},{"name":"nnUNet_preprocessed","value":"/factory-ram/preprocessed"},{"name":"nnUNet_results","value":"/factory/results"},{"name":"nnUNet_n_proc_DA","value":"18"}],"image":"nnunet-trainer:0.3.0-ray","imagePullPolicy":"IfNotPresent","name":"ray-worker","resources":{"limits":{"cpu":"28","memory":"160Gi"},"requests":{"cpu":"18","memory":"48Gi"}},"volumeMounts":[{"mountPath":"/factory","name":"factory-data"},{"mountPath":"/dev/shm","name":"dshm"},{"mountPath":"/factory-ram","name":"factory-ram"}]}],"dnsConfig":{"options":[{"name":"ndots","value":"1"}]},"nodeSelector":{"factory.io/training":"true"},"runtimeClassName":"nvidia-legacy","volumes":[{"hostPath":{"path":"/data/model-factory-nfs","type":"Directory"},"name":"factory-data"},{"emptyDir":{"medium":"Memory","sizeLimit":"32Gi"},"name":"dshm"},{"emptyDir":{"medium":"Memory","sizeLimit":"110Gi"},"name":"factory-ram"}]}}},{"groupName":"mig-8","maxReplicas":1,"minReplicas":1,"rayStartParams":{"num-cpus":"20","num-gpus":"1"},"replicas":1,"template":{"metadata":{"labels":{"app.kubernetes.io/managed-by":"modelfactory","ray.io/cluster":"factory-ray"}},"spec":{"containers":[{"env":[{"name":"NVIDIA_VISIBLE_DEVICES","value":"MIG-f290aabc-78b2-5f6a-99f4-a1084365c085"},{"name":"NVIDIA_DRIVER_CAPABILITIES","value":"compute,utility"},{"name":"MLFLOW_TRACKING_URI","value":"http://mlflow:5000"},{"name":"MLFLOW_S3_ENDPOINT_URL","value":"http://factory-minio:9000"},{"name":"AWS_ACCESS_KEY_ID","valueFrom":{"secretKeyRef":{"key":"root-user","name":"factory-minio"}}},{"name":"AWS_SECRET_ACCESS_KEY","valueFrom":{"secretKeyRef":{"key":"root-password","name":"factory-minio"}}},{"name":"MLFLOW_TRACKING_USERNAME","valueFrom":{"secretKeyRef":{"key":"admin-username","name":"mlflow-credentials"}}},{"name":"MLFLOW_TRACKING_PASSWORD","valueFrom":{"secretKeyRef":{"key":"admin-password","name":"mlflow-credentials"}}},{"name":"nnUNet_raw","value":"/factory/datasets"},{"name":"nnUNet_preprocessed","value":"/factory-ram/preprocessed"},{"name":"nnUNet_results","value":"/factory/results"},{"name":"nnUNet_n_proc_DA","value":"18"}],"image":"nnunet-trainer:0.3.0-ray","imagePullPolicy":"IfNotPresent","name":"ray-worker","resources":{"limits":{"cpu":"28","memory":"160Gi"},"requests":{"cpu":"18","memory":"48Gi"}},"volumeMounts":[{"mountPath":"/factory","name":"factory-data"},{"mountPath":"/dev/shm","name":"dshm"},{"mountPath":"/factory-ram","name":"factory-ram"}]}],"dnsConfig":{"options":[{"name":"ndots","value":"1"}]},"nodeSelector":{"factory.io/training":"true"},"runtimeClassName":"nvidia-legacy","volumes":[{"hostPath":{"path":"/data/model-factory-nfs","type":"Directory"},"name":"factory-data"},{"emptyDir":{"medium":"Memory","sizeLimit":"32Gi"},"name":"dshm"},{"emptyDir":{"medium":"Memory","sizeLimit":"110Gi"},"name":"factory-ram"}]}}},{"groupName":"mig-9","maxReplicas":1,"minReplicas":1,"rayStartParams":{"num-cpus":"20","num-gpus":"1"},"replicas":1,"template":{"metadata":{"labels":{"app.kubernetes.io/managed-by":"modelfactory","ray.io/cluster":"factory-ray"}},"spec":{"containers":[{"env":[{"name":"NVIDIA_VISIBLE_DEVICES","value":"MIG-9677b9e2-e4f5-5811-a2cd-039697ab4157"},{"name":"NVIDIA_DRIVER_CAPABILITIES","value":"compute,utility"},{"name":"MLFLOW_TRACKING_URI","value":"http://mlflow:5000"},{"name":"MLFLOW_S3_ENDPOINT_URL","value":"http://factory-minio:9000"},{"name":"AWS_ACCESS_KEY_ID","valueFrom":{"secretKeyRef":{"key":"root-user","name":"factory-minio"}}},{"name":"AWS_SECRET_ACCESS_KEY","valueFrom":{"secretKeyRef":{"key":"root-password","name":"factory-minio"}}},{"name":"MLFLOW_TRACKING_USERNAME","valueFrom":{"secretKeyRef":{"key":"admin-username","name":"mlflow-credentials"}}},{"name":"MLFLOW_TRACKING_PASSWORD","valueFrom":{"secretKeyRef":{"key":"admin-password","name":"mlflow-credentials"}}},{"name":"nnUNet_raw","value":"/factory/datasets"},{"name":"nnUNet_preprocessed","value":"/factory-ram/preprocessed"},{"name":"nnUNet_results","value":"/factory/results"},{"name":"nnUNet_n_proc_DA","value":"18"}],"image":"nnunet-trainer:0.3.0-ray","imagePullPolicy":"IfNotPresent","name":"ray-worker","resources":{"limits":{"cpu":"28","memory":"160Gi"},"requests":{"cpu":"18","memory":"48Gi"}},"volumeMounts":[{"mountPath":"/factory","name":"factory-data"},{"mountPath":"/dev/shm","name":"dshm"},{"mountPath":"/factory-ram","name":"factory-ram"}]}],"dnsConfig":{"options":[{"name":"ndots","value":"1"}]},"nodeSelector":{"factory.io/training":"true"},"runtimeClassName":"nvidia-legacy","volumes":[{"hostPath":{"path":"/data/model-factory-nfs","type":"Directory"},"name":"factory-data"},{"emptyDir":{"medium":"Memory","sizeLimit":"32Gi"},"name":"dshm"},{"emptyDir":{"medium":"Memory","sizeLimit":"110Gi"},"name":"factory-ram"}]}}},{"groupName":"mig-10","maxReplicas":1,"minReplicas":1,"rayStartParams":{"num-cpus":"20","num-gpus":"1"},"replicas":1,"template":{"metadata":{"labels":{"app.kubernetes.io/managed-by":"modelfactory","ray.io/cluster":"factory-ray"}},"spec":{"containers":[{"env":[{"name":"NVIDIA_VISIBLE_DEVICES","value":"MIG-14d1a71d-7ae5-510a-b984-45adf8572219"},{"name":"NVIDIA_DRIVER_CAPABILITIES","value":"compute,utility"},{"name":"MLFLOW_TRACKING_URI","value":"http://mlflow:5000"},{"name":"MLFLOW_S3_ENDPOINT_URL","value":"http://factory-minio:9000"},{"name":"AWS_ACCESS_KEY_ID","valueFrom":{"secretKeyRef":{"key":"root-user","name":"factory-minio"}}},{"name":"AWS_SECRET_ACCESS_KEY","valueFrom":{"secretKeyRef":{"key":"root-password","name":"factory-minio"}}},{"name":"MLFLOW_TRACKING_USERNAME","valueFrom":{"secretKeyRef":{"key":"admin-username","name":"mlflow-credentials"}}},{"name":"MLFLOW_TRACKING_PASSWORD","valueFrom":{"secretKeyRef":{"key":"admin-password","name":"mlflow-credentials"}}},{"name":"nnUNet_raw","value":"/factory/datasets"},{"name":"nnUNet_preprocessed","value":"/factory-ram/preprocessed"},{"name":"nnUNet_results","value":"/factory/results"},{"name":"nnUNet_n_proc_DA","value":"12"}],"image":"nnunet-trainer:0.3.0-ray","imagePullPolicy":"IfNotPresent","name":"ray-worker","resources":{"limits":{"cpu":"28","memory":"160Gi"},"requests":{"cpu":"4","memory":"48Gi"}},"volumeMounts":[{"mountPath":"/factory","name":"factory-data"},{"mountPath":"/dev/shm","name":"dshm"},{"mountPath":"/factory-ram","name":"factory-ram"}]}],"dnsConfig":{"options":[{"name":"ndots","value":"1"}]},"nodeSelector":{"factory.io/training":"true"},"runtimeClassName":"nvidia-legacy","volumes":[{"hostPath":{"path":"/data/model-factory-nfs","type":"Directory"},"name":"factory-data"},{"emptyDir":{"medium":"Memory","sizeLimit":"32Gi"},"name":"dshm"},{"emptyDir":{"medium":"Memory","sizeLimit":"110Gi"},"name":"factory-ram"}]}}},{"groupName":"mig-11","maxReplicas":1,"minReplicas":1,"rayStartParams":{"num-cpus":"20","num-gpus":"1"},"replicas":1,"template":{"metadata":{"labels":{"app.kubernetes.io/managed-by":"modelfactory","ray.io/cluster":"factory-ray"}},"spec":{"containers":[{"env":[{"name":"NVIDIA_VISIBLE_DEVICES","value":"MIG-649d7bfb-aad8-5a93-8687-891c9eb95c01"},{"name":"NVIDIA_DRIVER_CAPABILITIES","value":"compute,utility"},{"name":"MLFLOW_TRACKING_URI","value":"http://mlflow:5000"},{"name":"MLFLOW_S3_ENDPOINT_URL","value":"http://factory-minio:9000"},{"name":"AWS_ACCESS_KEY_ID","valueFrom":{"secretKeyRef":{"key":"root-user","name":"factory-minio"}}},{"name":"AWS_SECRET_ACCESS_KEY","valueFrom":{"secretKeyRef":{"key":"root-password","name":"factory-minio"}}},{"name":"MLFLOW_TRACKING_USERNAME","valueFrom":{"secretKeyRef":{"key":"admin-username","name":"mlflow-credentials"}}},{"name":"MLFLOW_TRACKING_PASSWORD","valueFrom":{"secretKeyRef":{"key":"admin-password","name":"mlflow-credentials"}}},{"name":"nnUNet_raw","value":"/factory/datasets"},{"name":"nnUNet_preprocessed","value":"/factory-ram/preprocessed"},{"name":"nnUNet_results","value":"/factory/results"},{"name":"nnUNet_n_proc_DA","value":"12"}],"image":"nnunet-trainer:0.3.0-ray","imagePullPolicy":"IfNotPresent","name":"ray-worker","resources":{"limits":{"cpu":"28","memory":"160Gi"},"requests":{"cpu":"4","memory":"48Gi"}},"volumeMounts":[{"mountPath":"/factory","name":"factory-data"},{"mountPath":"/dev/shm","name":"dshm"},{"mountPath":"/factory-ram","name":"factory-ram"}]}],"dnsConfig":{"options":[{"name":"ndots","value":"1"}]},"nodeSelector":{"factory.io/training":"true"},"runtimeClassName":"nvidia-legacy","volumes":[{"hostPath":{"path":"/data/model-factory-nfs","type":"Directory"},"name":"factory-data"},{"emptyDir":{"medium":"Memory","sizeLimit":"32Gi"},"name":"dshm"},{"emptyDir":{"medium":"Memory","sizeLimit":"110Gi"},"name":"factory-ram"}]}}},{"groupName":"mig-12","maxReplicas":1,"minReplicas":1,"rayStartParams":{"num-cpus":"20","num-gpus":"1"},"replicas":1,"template":{"metadata":{"labels":{"app.kubernetes.io/managed-by":"modelfactory","ray.io/cluster":"factory-ray"}},"spec":{"containers":[{"env":[{"name":"NVIDIA_VISIBLE_DEVICES","value":"MIG-5d44f26a-6720-59c5-ab10-71c088792159"},{"name":"NVIDIA_DRIVER_CAPABILITIES","value":"compute,utility"},{"name":"MLFLOW_TRACKING_URI","value":"http://mlflow:5000"},{"name":"MLFLOW_S3_ENDPOINT_URL","value":"http://factory-minio:9000"},{"name":"AWS_ACCESS_KEY_ID","valueFrom":{"secretKeyRef":{"key":"root-user","name":"factory-minio"}}},{"name":"AWS_SECRET_ACCESS_KEY","valueFrom":{"secretKeyRef":{"key":"root-password","name":"factory-minio"}}},{"name":"MLFLOW_TRACKING_USERNAME","valueFrom":{"secretKeyRef":{"key":"admin-username","name":"mlflow-credentials"}}},{"name":"MLFLOW_TRACKING_PASSWORD","valueFrom":{"secretKeyRef":{"key":"admin-password","name":"mlflow-credentials"}}},{"name":"nnUNet_raw","value":"/factory/datasets"},{"name":"nnUNet_preprocessed","value":"/factory-ram/preprocessed"},{"name":"nnUNet_results","value":"/factory/results"},{"name":"nnUNet_n_proc_DA","value":"12"}],"image":"nnunet-trainer:0.3.0-ray","imagePullPolicy":"IfNotPresent","name":"ray-worker","resources":{"limits":{"cpu":"28","memory":"160Gi"},"requests":{"cpu":"4","memory":"48Gi"}},"volumeMounts":[{"mountPath":"/factory","name":"factory-data"},{"mountPath":"/dev/shm","name":"dshm"},{"mountPath":"/factory-ram","name":"factory-ram"}]}],"dnsConfig":{"options":[{"name":"ndots","value":"1"}]},"nodeSelector":{"factory.io/training":"true"},"runtimeClassName":"nvidia-legacy","volumes":[{"hostPath":{"path":"/data/model-factory-nfs","type":"Directory"},"name":"factory-data"},{"emptyDir":{"medium":"Memory","sizeLimit":"32Gi"},"name":"dshm"},{"emptyDir":{"medium":"Memory","sizeLimit":"110Gi"},"name":"factory-ram"}]}}},{"groupName":"mig-13","maxReplicas":1,"minReplicas":1,"rayStartParams":{"num-cpus":"20","num-gpus":"1"},"replicas":1,"template":{"metadata":{"labels":{"app.kubernetes.io/managed-by":"modelfactory","ray.io/cluster":"factory-ray"}},"spec":{"containers":[{"env":[{"name":"NVIDIA_VISIBLE_DEVICES","value":"MIG-ef9a35aa-cbc6-520f-8da6-936e84f00446"},{"name":"NVIDIA_DRIVER_CAPABILITIES","value":"compute,utility"},{"name":"MLFLOW_TRACKING_URI","value":"http://mlflow:5000"},{"name":"MLFLOW_S3_ENDPOINT_URL","value":"http://factory-minio:9000"},{"name":"AWS_ACCESS_KEY_ID","valueFrom":{"secretKeyRef":{"key":"root-user","name":"factory-minio"}}},{"name":"AWS_SECRET_ACCESS_KEY","valueFrom":{"secretKeyRef":{"key":"root-password","name":"factory-minio"}}},{"name":"MLFLOW_TRACKING_USERNAME","valueFrom":{"secretKeyRef":{"key":"admin-username","name":"mlflow-credentials"}}},{"name":"MLFLOW_TRACKING_PASSWORD","valueFrom":{"secretKeyRef":{"key":"admin-password","name":"mlflow-credentials"}}},{"name":"nnUNet_raw","value":"/factory/datasets"},{"name":"nnUNet_preprocessed","value":"/factory-ram/preprocessed"},{"name":"nnUNet_results","value":"/factory/results"},{"name":"nnUNet_n_proc_DA","value":"12"}],"image":"nnunet-trainer:0.3.0-ray","imagePullPolicy":"IfNotPresent","name":"ray-worker","resources":{"limits":{"cpu":"28","memory":"160Gi"},"requests":{"cpu":"4","memory":"48Gi"}},"volumeMounts":[{"mountPath":"/factory","name":"factory-data"},{"mountPath":"/dev/shm","name":"dshm"},{"mountPath":"/factory-ram","name":"factory-ram"}]}],"dnsConfig":{"options":[{"name":"ndots","value":"1"}]},"nodeSelector":{"factory.io/training":"true"},"runtimeClassName":"nvidia-legacy","volumes":[{"hostPath":{"path":"/data/model-factory-nfs","type":"Directory"},"name":"factory-data"},{"emptyDir":{"medium":"Memory","sizeLimit":"32Gi"},"name":"dshm"},{"emptyDir":{"medium":"Memory","sizeLimit":"110Gi"},"name":"factory-ram"}]}}}]}}
+  creationTimestamp: "2026-05-14T00:30:01Z"
+  generation: 30
+  labels:
+    app.kubernetes.io/managed-by: modelfactory
+  name: factory-ray
+  namespace: model-factory
+  resourceVersion: "18950916"
+  uid: cec9604e-6c00-4d78-8bf4-4c2634300258
+spec:
+  enableInTreeAutoscaling: false
+  headGroupSpec:
+    rayStartParams:
+      dashboard-host: 0.0.0.0
+      num-cpus: "2"
+      num-gpus: "0"
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/managed-by: modelfactory
+          ray.io/cluster: factory-ray
+      spec:
+        containers:
+        - env:
+          - name: MLFLOW_TRACKING_URI
+            value: http://mlflow:5000
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: http://factory-minio:9000
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: root-user
+                name: factory-minio
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: root-password
+                name: factory-minio
+          - name: MLFLOW_TRACKING_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: admin-username
+                name: mlflow-credentials
+          - name: MLFLOW_TRACKING_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: admin-password
+                name: mlflow-credentials
+          image: nnunet-trainer:0.3.0-ray
+          imagePullPolicy: IfNotPresent
+          name: ray-head
+          ports:
+          - containerPort: 6379
+            name: gcs
+            protocol: TCP
+          - containerPort: 8265
+            name: dashboard
+            protocol: TCP
+          - containerPort: 10001
+            name: client
+            protocol: TCP
+          resources:
+            limits:
+              cpu: "4"
+              memory: 16Gi
+            requests:
+              cpu: "2"
+              memory: 8Gi
+          volumeMounts:
+          - mountPath: /factory
+            name: factory-data
+        dnsConfig:
+          options:
+          - name: ndots
+            value: "1"
+        nodeSelector:
+          factory.io/training: "true"
+        volumes:
+        - hostPath:
+            path: /data/model-factory-nfs
+            type: Directory
+          name: factory-data
+  rayVersion: 2.40.0
+  workerGroupSpecs:
+  - groupName: mig-0
+    maxReplicas: 1
+    minReplicas: 1
+    numOfHosts: 1
+    rayStartParams:
+      num-cpus: "20"
+      num-gpus: "1"
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/managed-by: modelfactory
+          ray.io/cluster: factory-ray
+      spec:
+        containers:
+        - env:
+          - name: NVIDIA_VISIBLE_DEVICES
+            value: MIG-e934d59a-8527-5161-b8fd-989c68836b21
+          - name: NVIDIA_DRIVER_CAPABILITIES
+            value: compute,utility
+          - name: MLFLOW_TRACKING_URI
+            value: http://mlflow:5000
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: http://factory-minio:9000
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: root-user
+                name: factory-minio
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: root-password
+                name: factory-minio
+          - name: MLFLOW_TRACKING_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: admin-username
+                name: mlflow-credentials
+          - name: MLFLOW_TRACKING_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: admin-password
+                name: mlflow-credentials
+          - name: nnUNet_raw
+            value: /factory/datasets
+          - name: nnUNet_preprocessed
+            value: /factory-ram/preprocessed
+          - name: nnUNet_results
+            value: /factory/results
+          - name: nnUNet_n_proc_DA
+            value: "18"
+          image: nnunet-trainer:0.3.0-ray
+          imagePullPolicy: IfNotPresent
+          name: ray-worker
+          resources:
+            limits:
+              cpu: "28"
+              memory: 160Gi
+            requests:
+              cpu: "18"
+              memory: 48Gi
+          volumeMounts:
+          - mountPath: /factory
+            name: factory-data
+          - mountPath: /dev/shm
+            name: dshm
+          - mountPath: /factory-ram
+            name: factory-ram
+        dnsConfig:
+          options:
+          - name: ndots
+            value: "1"
+        nodeSelector:
+          factory.io/training: "true"
+        runtimeClassName: nvidia-legacy
+        volumes:
+        - hostPath:
+            path: /data/model-factory-nfs
+            type: Directory
+          name: factory-data
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 32Gi
+          name: dshm
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 110Gi
+          name: factory-ram
+  - groupName: mig-1
+    maxReplicas: 1
+    minReplicas: 1
+    numOfHosts: 1
+    rayStartParams:
+      num-cpus: "20"
+      num-gpus: "1"
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/managed-by: modelfactory
+          ray.io/cluster: factory-ray
+      spec:
+        containers:
+        - env:
+          - name: NVIDIA_VISIBLE_DEVICES
+            value: MIG-4e48e45e-7213-5ab8-bc3c-f761330eb14e
+          - name: NVIDIA_DRIVER_CAPABILITIES
+            value: compute,utility
+          - name: MLFLOW_TRACKING_URI
+            value: http://mlflow:5000
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: http://factory-minio:9000
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: root-user
+                name: factory-minio
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: root-password
+                name: factory-minio
+          - name: MLFLOW_TRACKING_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: admin-username
+                name: mlflow-credentials
+          - name: MLFLOW_TRACKING_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: admin-password
+                name: mlflow-credentials
+          - name: nnUNet_raw
+            value: /factory/datasets
+          - name: nnUNet_preprocessed
+            value: /factory-ram/preprocessed
+          - name: nnUNet_results
+            value: /factory/results
+          - name: nnUNet_n_proc_DA
+            value: "18"
+          image: nnunet-trainer:0.3.0-ray
+          imagePullPolicy: IfNotPresent
+          name: ray-worker
+          resources:
+            limits:
+              cpu: "28"
+              memory: 160Gi
+            requests:
+              cpu: "18"
+              memory: 48Gi
+          volumeMounts:
+          - mountPath: /factory
+            name: factory-data
+          - mountPath: /dev/shm
+            name: dshm
+          - mountPath: /factory-ram
+            name: factory-ram
+        dnsConfig:
+          options:
+          - name: ndots
+            value: "1"
+        nodeSelector:
+          factory.io/training: "true"
+        runtimeClassName: nvidia-legacy
+        volumes:
+        - hostPath:
+            path: /data/model-factory-nfs
+            type: Directory
+          name: factory-data
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 32Gi
+          name: dshm
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 110Gi
+          name: factory-ram
+  - groupName: mig-2
+    maxReplicas: 1
+    minReplicas: 1
+    numOfHosts: 1
+    rayStartParams:
+      num-cpus: "20"
+      num-gpus: "1"
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/managed-by: modelfactory
+          ray.io/cluster: factory-ray
+      spec:
+        containers:
+        - env:
+          - name: NVIDIA_VISIBLE_DEVICES
+            value: MIG-1c18b741-02a7-501c-bf39-a9a90624a10d
+          - name: NVIDIA_DRIVER_CAPABILITIES
+            value: compute,utility
+          - name: MLFLOW_TRACKING_URI
+            value: http://mlflow:5000
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: http://factory-minio:9000
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: root-user
+                name: factory-minio
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: root-password
+                name: factory-minio
+          - name: MLFLOW_TRACKING_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: admin-username
+                name: mlflow-credentials
+          - name: MLFLOW_TRACKING_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: admin-password
+                name: mlflow-credentials
+          - name: nnUNet_raw
+            value: /factory/datasets
+          - name: nnUNet_preprocessed
+            value: /factory-ram/preprocessed
+          - name: nnUNet_results
+            value: /factory/results
+          - name: nnUNet_n_proc_DA
+            value: "18"
+          image: nnunet-trainer:0.3.0-ray
+          imagePullPolicy: IfNotPresent
+          name: ray-worker
+          resources:
+            limits:
+              cpu: "28"
+              memory: 160Gi
+            requests:
+              cpu: "18"
+              memory: 48Gi
+          volumeMounts:
+          - mountPath: /factory
+            name: factory-data
+          - mountPath: /dev/shm
+            name: dshm
+          - mountPath: /factory-ram
+            name: factory-ram
+        dnsConfig:
+          options:
+          - name: ndots
+            value: "1"
+        nodeSelector:
+          factory.io/training: "true"
+        runtimeClassName: nvidia-legacy
+        volumes:
+        - hostPath:
+            path: /data/model-factory-nfs
+            type: Directory
+          name: factory-data
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 32Gi
+          name: dshm
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 110Gi
+          name: factory-ram
+  - groupName: mig-3
+    maxReplicas: 1
+    minReplicas: 1
+    numOfHosts: 1
+    rayStartParams:
+      num-cpus: "20"
+      num-gpus: "1"
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/managed-by: modelfactory
+          ray.io/cluster: factory-ray
+      spec:
+        containers:
+        - env:
+          - name: NVIDIA_VISIBLE_DEVICES
+            value: MIG-8192150b-48e2-5a56-b635-1d6ef30e84f1
+          - name: NVIDIA_DRIVER_CAPABILITIES
+            value: compute,utility
+          - name: MLFLOW_TRACKING_URI
+            value: http://mlflow:5000
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: http://factory-minio:9000
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: root-user
+                name: factory-minio
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: root-password
+                name: factory-minio
+          - name: MLFLOW_TRACKING_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: admin-username
+                name: mlflow-credentials
+          - name: MLFLOW_TRACKING_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: admin-password
+                name: mlflow-credentials
+          - name: nnUNet_raw
+            value: /factory/datasets
+          - name: nnUNet_preprocessed
+            value: /factory-ram/preprocessed
+          - name: nnUNet_results
+            value: /factory/results
+          - name: nnUNet_n_proc_DA
+            value: "18"
+          image: nnunet-trainer:0.3.0-ray
+          imagePullPolicy: IfNotPresent
+          name: ray-worker
+          resources:
+            limits:
+              cpu: "28"
+              memory: 160Gi
+            requests:
+              cpu: "18"
+              memory: 48Gi
+          volumeMounts:
+          - mountPath: /factory
+            name: factory-data
+          - mountPath: /dev/shm
+            name: dshm
+          - mountPath: /factory-ram
+            name: factory-ram
+        dnsConfig:
+          options:
+          - name: ndots
+            value: "1"
+        nodeSelector:
+          factory.io/training: "true"
+        runtimeClassName: nvidia-legacy
+        volumes:
+        - hostPath:
+            path: /data/model-factory-nfs
+            type: Directory
+          name: factory-data
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 32Gi
+          name: dshm
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 110Gi
+          name: factory-ram
+  - groupName: mig-4
+    maxReplicas: 1
+    minReplicas: 1
+    numOfHosts: 1
+    rayStartParams:
+      num-cpus: "20"
+      num-gpus: "1"
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/managed-by: modelfactory
+          ray.io/cluster: factory-ray
+      spec:
+        containers:
+        - env:
+          - name: NVIDIA_VISIBLE_DEVICES
+            value: MIG-71d9d40f-7d1a-51a0-95f8-c425b9545e02
+          - name: NVIDIA_DRIVER_CAPABILITIES
+            value: compute,utility
+          - name: MLFLOW_TRACKING_URI
+            value: http://mlflow:5000
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: http://factory-minio:9000
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: root-user
+                name: factory-minio
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: root-password
+                name: factory-minio
+          - name: MLFLOW_TRACKING_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: admin-username
+                name: mlflow-credentials
+          - name: MLFLOW_TRACKING_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: admin-password
+                name: mlflow-credentials
+          - name: nnUNet_raw
+            value: /factory/datasets
+          - name: nnUNet_preprocessed
+            value: /factory-ram/preprocessed
+          - name: nnUNet_results
+            value: /factory/results
+          - name: nnUNet_n_proc_DA
+            value: "18"
+          image: nnunet-trainer:0.3.0-ray
+          imagePullPolicy: IfNotPresent
+          name: ray-worker
+          resources:
+            limits:
+              cpu: "28"
+              memory: 160Gi
+            requests:
+              cpu: "18"
+              memory: 48Gi
+          volumeMounts:
+          - mountPath: /factory
+            name: factory-data
+          - mountPath: /dev/shm
+            name: dshm
+          - mountPath: /factory-ram
+            name: factory-ram
+        dnsConfig:
+          options:
+          - name: ndots
+            value: "1"
+        nodeSelector:
+          factory.io/training: "true"
+        runtimeClassName: nvidia-legacy
+        volumes:
+        - hostPath:
+            path: /data/model-factory-nfs
+            type: Directory
+          name: factory-data
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 32Gi
+          name: dshm
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 110Gi
+          name: factory-ram
+  - groupName: mig-5
+    maxReplicas: 1
+    minReplicas: 1
+    numOfHosts: 1
+    rayStartParams:
+      num-cpus: "20"
+      num-gpus: "1"
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/managed-by: modelfactory
+          ray.io/cluster: factory-ray
+      spec:
+        containers:
+        - env:
+          - name: NVIDIA_VISIBLE_DEVICES
+            value: MIG-a0015c8c-dcec-5d65-b291-23838d34891b
+          - name: NVIDIA_DRIVER_CAPABILITIES
+            value: compute,utility
+          - name: MLFLOW_TRACKING_URI
+            value: http://mlflow:5000
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: http://factory-minio:9000
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: root-user
+                name: factory-minio
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: root-password
+                name: factory-minio
+          - name: MLFLOW_TRACKING_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: admin-username
+                name: mlflow-credentials
+          - name: MLFLOW_TRACKING_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: admin-password
+                name: mlflow-credentials
+          - name: nnUNet_raw
+            value: /factory/datasets
+          - name: nnUNet_preprocessed
+            value: /factory-ram/preprocessed
+          - name: nnUNet_results
+            value: /factory/results
+          - name: nnUNet_n_proc_DA
+            value: "18"
+          image: nnunet-trainer:0.3.0-ray
+          imagePullPolicy: IfNotPresent
+          name: ray-worker
+          resources:
+            limits:
+              cpu: "28"
+              memory: 300Gi
+            requests:
+              cpu: "18"
+              memory: 48Gi
+          volumeMounts:
+          - mountPath: /factory
+            name: factory-data
+          - mountPath: /dev/shm
+            name: dshm
+          - mountPath: /factory-ram
+            name: factory-ram
+        dnsConfig:
+          options:
+          - name: ndots
+            value: "1"
+        nodeSelector:
+          factory.io/training: "true"
+        runtimeClassName: nvidia-legacy
+        volumes:
+        - hostPath:
+            path: /data/model-factory-nfs
+            type: Directory
+          name: factory-data
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 64Gi
+          name: dshm
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 110Gi
+          name: factory-ram
+  - groupName: mig-6
+    maxReplicas: 1
+    minReplicas: 1
+    numOfHosts: 1
+    rayStartParams:
+      num-cpus: "20"
+      num-gpus: "1"
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/managed-by: modelfactory
+          ray.io/cluster: factory-ray
+      spec:
+        containers:
+        - env:
+          - name: NVIDIA_VISIBLE_DEVICES
+            value: MIG-c0f33cbf-4ab1-5d6c-8e65-91be2a7beaf0
+          - name: NVIDIA_DRIVER_CAPABILITIES
+            value: compute,utility
+          - name: MLFLOW_TRACKING_URI
+            value: http://mlflow:5000
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: http://factory-minio:9000
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: root-user
+                name: factory-minio
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: root-password
+                name: factory-minio
+          - name: MLFLOW_TRACKING_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: admin-username
+                name: mlflow-credentials
+          - name: MLFLOW_TRACKING_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: admin-password
+                name: mlflow-credentials
+          - name: nnUNet_raw
+            value: /factory/datasets
+          - name: nnUNet_preprocessed
+            value: /factory-ram/preprocessed
+          - name: nnUNet_results
+            value: /factory/results
+          - name: nnUNet_n_proc_DA
+            value: "18"
+          image: nnunet-trainer:0.3.0-ray
+          imagePullPolicy: IfNotPresent
+          name: ray-worker
+          resources:
+            limits:
+              cpu: "28"
+              memory: 300Gi
+            requests:
+              cpu: "18"
+              memory: 48Gi
+          volumeMounts:
+          - mountPath: /factory
+            name: factory-data
+          - mountPath: /dev/shm
+            name: dshm
+          - mountPath: /factory-ram
+            name: factory-ram
+        dnsConfig:
+          options:
+          - name: ndots
+            value: "1"
+        nodeSelector:
+          factory.io/training: "true"
+        runtimeClassName: nvidia-legacy
+        volumes:
+        - hostPath:
+            path: /data/model-factory-nfs
+            type: Directory
+          name: factory-data
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 64Gi
+          name: dshm
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 110Gi
+          name: factory-ram
+  - groupName: mig-7
+    maxReplicas: 1
+    minReplicas: 1
+    numOfHosts: 1
+    rayStartParams:
+      num-cpus: "20"
+      num-gpus: "1"
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/managed-by: modelfactory
+          ray.io/cluster: factory-ray
+      spec:
+        containers:
+        - env:
+          - name: NVIDIA_VISIBLE_DEVICES
+            value: MIG-91acc84a-83ac-5a11-9c09-aca75ac759cc
+          - name: NVIDIA_DRIVER_CAPABILITIES
+            value: compute,utility
+          - name: MLFLOW_TRACKING_URI
+            value: http://mlflow:5000
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: http://factory-minio:9000
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: root-user
+                name: factory-minio
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: root-password
+                name: factory-minio
+          - name: MLFLOW_TRACKING_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: admin-username
+                name: mlflow-credentials
+          - name: MLFLOW_TRACKING_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: admin-password
+                name: mlflow-credentials
+          - name: nnUNet_raw
+            value: /factory/datasets
+          - name: nnUNet_preprocessed
+            value: /factory-ram/preprocessed
+          - name: nnUNet_results
+            value: /factory/results
+          - name: nnUNet_n_proc_DA
+            value: "18"
+          image: nnunet-trainer:0.3.0-ray
+          imagePullPolicy: IfNotPresent
+          name: ray-worker
+          resources:
+            limits:
+              cpu: "28"
+              memory: 300Gi
+            requests:
+              cpu: "18"
+              memory: 48Gi
+          volumeMounts:
+          - mountPath: /factory
+            name: factory-data
+          - mountPath: /dev/shm
+            name: dshm
+          - mountPath: /factory-ram
+            name: factory-ram
+        dnsConfig:
+          options:
+          - name: ndots
+            value: "1"
+        nodeSelector:
+          factory.io/training: "true"
+        runtimeClassName: nvidia-legacy
+        volumes:
+        - hostPath:
+            path: /data/model-factory-nfs
+            type: Directory
+          name: factory-data
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 64Gi
+          name: dshm
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 110Gi
+          name: factory-ram
+  - groupName: mig-8
+    maxReplicas: 1
+    minReplicas: 0
+    numOfHosts: 1
+    rayStartParams:
+      num-cpus: "20"
+      num-gpus: "1"
+    replicas: 0
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/managed-by: modelfactory
+          ray.io/cluster: factory-ray
+      spec:
+        containers:
+        - env:
+          - name: NVIDIA_VISIBLE_DEVICES
+            value: MIG-f290aabc-78b2-5f6a-99f4-a1084365c085
+          - name: NVIDIA_DRIVER_CAPABILITIES
+            value: compute,utility
+          - name: MLFLOW_TRACKING_URI
+            value: http://mlflow:5000
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: http://factory-minio:9000
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: root-user
+                name: factory-minio
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: root-password
+                name: factory-minio
+          - name: MLFLOW_TRACKING_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: admin-username
+                name: mlflow-credentials
+          - name: MLFLOW_TRACKING_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: admin-password
+                name: mlflow-credentials
+          - name: nnUNet_raw
+            value: /factory/datasets
+          - name: nnUNet_preprocessed
+            value: /factory-ram/preprocessed
+          - name: nnUNet_results
+            value: /factory/results
+          - name: nnUNet_n_proc_DA
+            value: "18"
+          image: nnunet-trainer:0.3.0-ray
+          imagePullPolicy: IfNotPresent
+          name: ray-worker
+          resources:
+            limits:
+              cpu: "28"
+              memory: 160Gi
+            requests:
+              cpu: "18"
+              memory: 48Gi
+          volumeMounts:
+          - mountPath: /factory
+            name: factory-data
+          - mountPath: /dev/shm
+            name: dshm
+          - mountPath: /factory-ram
+            name: factory-ram
+        dnsConfig:
+          options:
+          - name: ndots
+            value: "1"
+        nodeSelector:
+          factory.io/training: "true"
+        runtimeClassName: nvidia-legacy
+        volumes:
+        - hostPath:
+            path: /data/model-factory-nfs
+            type: Directory
+          name: factory-data
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 32Gi
+          name: dshm
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 110Gi
+          name: factory-ram
+  - groupName: mig-9
+    maxReplicas: 1
+    minReplicas: 1
+    numOfHosts: 1
+    rayStartParams:
+      num-cpus: "20"
+      num-gpus: "1"
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/managed-by: modelfactory
+          ray.io/cluster: factory-ray
+      spec:
+        containers:
+        - env:
+          - name: NVIDIA_VISIBLE_DEVICES
+            value: MIG-9677b9e2-e4f5-5811-a2cd-039697ab4157
+          - name: NVIDIA_DRIVER_CAPABILITIES
+            value: compute,utility
+          - name: MLFLOW_TRACKING_URI
+            value: http://mlflow:5000
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: http://factory-minio:9000
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: root-user
+                name: factory-minio
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: root-password
+                name: factory-minio
+          - name: MLFLOW_TRACKING_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: admin-username
+                name: mlflow-credentials
+          - name: MLFLOW_TRACKING_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: admin-password
+                name: mlflow-credentials
+          - name: nnUNet_raw
+            value: /factory/datasets
+          - name: nnUNet_preprocessed
+            value: /factory-ram/preprocessed
+          - name: nnUNet_results
+            value: /factory/results
+          - name: nnUNet_n_proc_DA
+            value: "18"
+          image: nnunet-trainer:0.3.0-ray
+          imagePullPolicy: IfNotPresent
+          name: ray-worker
+          resources:
+            limits:
+              cpu: "28"
+              memory: 160Gi
+            requests:
+              cpu: "18"
+              memory: 48Gi
+          volumeMounts:
+          - mountPath: /factory
+            name: factory-data
+          - mountPath: /dev/shm
+            name: dshm
+          - mountPath: /factory-ram
+            name: factory-ram
+        dnsConfig:
+          options:
+          - name: ndots
+            value: "1"
+        nodeSelector:
+          factory.io/training: "true"
+        runtimeClassName: nvidia-legacy
+        volumes:
+        - hostPath:
+            path: /data/model-factory-nfs
+            type: Directory
+          name: factory-data
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 32Gi
+          name: dshm
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 110Gi
+          name: factory-ram
+  - groupName: mig-10
+    maxReplicas: 1
+    minReplicas: 1
+    numOfHosts: 1
+    rayStartParams:
+      num-cpus: "20"
+      num-gpus: "1"
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/managed-by: modelfactory
+          ray.io/cluster: factory-ray
+      spec:
+        containers:
+        - env:
+          - name: NVIDIA_VISIBLE_DEVICES
+            value: MIG-14d1a71d-7ae5-510a-b984-45adf8572219
+          - name: NVIDIA_DRIVER_CAPABILITIES
+            value: compute,utility
+          - name: MLFLOW_TRACKING_URI
+            value: http://mlflow:5000
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: http://factory-minio:9000
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: root-user
+                name: factory-minio
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: root-password
+                name: factory-minio
+          - name: MLFLOW_TRACKING_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: admin-username
+                name: mlflow-credentials
+          - name: MLFLOW_TRACKING_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: admin-password
+                name: mlflow-credentials
+          - name: nnUNet_raw
+            value: /factory/datasets
+          - name: nnUNet_preprocessed
+            value: /factory-ram/preprocessed
+          - name: nnUNet_results
+            value: /factory/results
+          - name: nnUNet_n_proc_DA
+            value: "12"
+          image: nnunet-trainer:0.3.0-ray
+          imagePullPolicy: IfNotPresent
+          name: ray-worker
+          resources:
+            limits:
+              cpu: "28"
+              memory: 300Gi
+            requests:
+              cpu: "4"
+              memory: 48Gi
+          volumeMounts:
+          - mountPath: /factory
+            name: factory-data
+          - mountPath: /dev/shm
+            name: dshm
+          - mountPath: /factory-ram
+            name: factory-ram
+        dnsConfig:
+          options:
+          - name: ndots
+            value: "1"
+        nodeSelector:
+          factory.io/training: "true"
+        runtimeClassName: nvidia-legacy
+        volumes:
+        - hostPath:
+            path: /data/model-factory-nfs
+            type: Directory
+          name: factory-data
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 64Gi
+          name: dshm
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 110Gi
+          name: factory-ram
+  - groupName: mig-11
+    maxReplicas: 1
+    minReplicas: 1
+    numOfHosts: 1
+    rayStartParams:
+      num-cpus: "20"
+      num-gpus: "1"
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/managed-by: modelfactory
+          ray.io/cluster: factory-ray
+      spec:
+        containers:
+        - env:
+          - name: NVIDIA_VISIBLE_DEVICES
+            value: MIG-649d7bfb-aad8-5a93-8687-891c9eb95c01
+          - name: NVIDIA_DRIVER_CAPABILITIES
+            value: compute,utility
+          - name: MLFLOW_TRACKING_URI
+            value: http://mlflow:5000
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: http://factory-minio:9000
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: root-user
+                name: factory-minio
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: root-password
+                name: factory-minio
+          - name: MLFLOW_TRACKING_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: admin-username
+                name: mlflow-credentials
+          - name: MLFLOW_TRACKING_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: admin-password
+                name: mlflow-credentials
+          - name: nnUNet_raw
+            value: /factory/datasets
+          - name: nnUNet_preprocessed
+            value: /factory-ram/preprocessed
+          - name: nnUNet_results
+            value: /factory/results
+          - name: nnUNet_n_proc_DA
+            value: "12"
+          image: nnunet-trainer:0.3.0-ray
+          imagePullPolicy: IfNotPresent
+          name: ray-worker
+          resources:
+            limits:
+              cpu: "28"
+              memory: 160Gi
+            requests:
+              cpu: "4"
+              memory: 48Gi
+          volumeMounts:
+          - mountPath: /factory
+            name: factory-data
+          - mountPath: /dev/shm
+            name: dshm
+          - mountPath: /factory-ram
+            name: factory-ram
+        dnsConfig:
+          options:
+          - name: ndots
+            value: "1"
+        nodeSelector:
+          factory.io/training: "true"
+        runtimeClassName: nvidia-legacy
+        volumes:
+        - hostPath:
+            path: /data/model-factory-nfs
+            type: Directory
+          name: factory-data
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 32Gi
+          name: dshm
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 110Gi
+          name: factory-ram
+  - groupName: mig-12
+    maxReplicas: 1
+    minReplicas: 1
+    numOfHosts: 1
+    rayStartParams:
+      num-cpus: "20"
+      num-gpus: "1"
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/managed-by: modelfactory
+          ray.io/cluster: factory-ray
+      spec:
+        containers:
+        - env:
+          - name: NVIDIA_VISIBLE_DEVICES
+            value: MIG-5d44f26a-6720-59c5-ab10-71c088792159
+          - name: NVIDIA_DRIVER_CAPABILITIES
+            value: compute,utility
+          - name: MLFLOW_TRACKING_URI
+            value: http://mlflow:5000
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: http://factory-minio:9000
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: root-user
+                name: factory-minio
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: root-password
+                name: factory-minio
+          - name: MLFLOW_TRACKING_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: admin-username
+                name: mlflow-credentials
+          - name: MLFLOW_TRACKING_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: admin-password
+                name: mlflow-credentials
+          - name: nnUNet_raw
+            value: /factory/datasets
+          - name: nnUNet_preprocessed
+            value: /factory-ram/preprocessed
+          - name: nnUNet_results
+            value: /factory/results
+          - name: nnUNet_n_proc_DA
+            value: "12"
+          image: nnunet-trainer:0.3.0-ray
+          imagePullPolicy: IfNotPresent
+          name: ray-worker
+          resources:
+            limits:
+              cpu: "28"
+              memory: 160Gi
+            requests:
+              cpu: "4"
+              memory: 48Gi
+          volumeMounts:
+          - mountPath: /factory
+            name: factory-data
+          - mountPath: /dev/shm
+            name: dshm
+          - mountPath: /factory-ram
+            name: factory-ram
+        dnsConfig:
+          options:
+          - name: ndots
+            value: "1"
+        nodeSelector:
+          factory.io/training: "true"
+        runtimeClassName: nvidia-legacy
+        volumes:
+        - hostPath:
+            path: /data/model-factory-nfs
+            type: Directory
+          name: factory-data
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 32Gi
+          name: dshm
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 110Gi
+          name: factory-ram
+  - groupName: mig-13
+    maxReplicas: 1
+    minReplicas: 1
+    numOfHosts: 1
+    rayStartParams:
+      num-cpus: "20"
+      num-gpus: "1"
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app.kubernetes.io/managed-by: modelfactory
+          ray.io/cluster: factory-ray
+      spec:
+        containers:
+        - env:
+          - name: NVIDIA_VISIBLE_DEVICES
+            value: MIG-ef9a35aa-cbc6-520f-8da6-936e84f00446
+          - name: NVIDIA_DRIVER_CAPABILITIES
+            value: compute,utility
+          - name: MLFLOW_TRACKING_URI
+            value: http://mlflow:5000
+          - name: MLFLOW_S3_ENDPOINT_URL
+            value: http://factory-minio:9000
+          - name: AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: root-user
+                name: factory-minio
+          - name: AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: root-password
+                name: factory-minio
+          - name: MLFLOW_TRACKING_USERNAME
+            valueFrom:
+              secretKeyRef:
+                key: admin-username
+                name: mlflow-credentials
+          - name: MLFLOW_TRACKING_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: admin-password
+                name: mlflow-credentials
+          - name: nnUNet_raw
+            value: /factory/datasets
+          - name: nnUNet_preprocessed
+            value: /factory-ram/preprocessed
+          - name: nnUNet_results
+            value: /factory/results
+          - name: nnUNet_n_proc_DA
+            value: "12"
+          image: nnunet-trainer:0.3.0-ray
+          imagePullPolicy: IfNotPresent
+          name: ray-worker
+          resources:
+            limits:
+              cpu: "28"
+              memory: 160Gi
+            requests:
+              cpu: "4"
+              memory: 48Gi
+          volumeMounts:
+          - mountPath: /factory
+            name: factory-data
+          - mountPath: /dev/shm
+            name: dshm
+          - mountPath: /factory-ram
+            name: factory-ram
+        dnsConfig:
+          options:
+          - name: ndots
+            value: "1"
+        nodeSelector:
+          factory.io/training: "true"
+        runtimeClassName: nvidia-legacy
+        volumes:
+        - hostPath:
+            path: /data/model-factory-nfs
+            type: Directory
+          name: factory-data
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 32Gi
+          name: dshm
+        - emptyDir:
+            medium: Memory
+            sizeLimit: 110Gi
+          name: factory-ram
+status:
+  availableWorkerReplicas: 13
+  conditions:
+  - lastTransitionTime: "2026-06-21T22:38:59Z"
+    message: ""
+    reason: HeadPodRunningAndReady
+    status: "True"
+    type: HeadPodReady
+  - lastTransitionTime: "2026-05-14T00:30:30Z"
+    message: All Ray Pods are ready for the first time
+    reason: AllPodRunningAndReadyFirstTime
+    status: "True"
+    type: RayClusterProvisioned
+  - lastTransitionTime: "2026-05-14T00:30:01Z"
+    message: ""
+    reason: RayClusterSuspended
+    status: "False"
+    type: RayClusterSuspended
+  - lastTransitionTime: "2026-05-14T00:30:01Z"
+    message: ""
+    reason: RayClusterSuspending
+    status: "False"
+    type: RayClusterSuspending
+  desiredCPU: "180"
+  desiredGPU: "0"
+  desiredMemory: 632Gi
+  desiredTPU: "0"
+  desiredWorkerReplicas: 13
+  endpoints:
+    client: "10001"
+    dashboard: "8265"
+    gcs: "6379"
+    metrics: "8080"
+  head:
+    podIP: 192.168.34.23
+    podName: factory-ray-head-jhr2g
+    serviceIP: 192.168.34.23
+    serviceName: factory-ray-head-svc
+  lastUpdateTime: "2026-06-30T17:09:02Z"
+  maxWorkerReplicas: 14
+  minWorkerReplicas: 13
+  observedGeneration: 30
+  readyWorkerReplicas: 13
+  state: ready
+  stateTransitionTimes:
+    ready: "2026-05-14T00:30:30Z"

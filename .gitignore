@@ -1,0 +1,66 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.tox/
+build/
+dist/
+*.swp
+.idea/
+.vscode/
+.venv/
+venv/
+env/
+
+# Local secrets / kubeconfigs / generated manifests
+.env
+.env.local
+secrets/
+secrets.yaml
+secrets.*.yaml
+!secrets.example.yaml
+*.kubeconfig
+infra/generated/
+*.tfstate*
+
+# Build artifacts
+images/*/wheels/
+*.tar
+*.tar.gz
+
+# Local data (should be on NFS, not in repo). Anchored to the repo root with a
+# leading slash so they do NOT also match tests/datasets/, etc.
+/datasets/
+/preprocessed/
+/results/
+/nnUNet_*/
+/mlflow-artifacts/
+
+# Cluster spec + rendered manifests (per-site, generated — never commit)
+/cluster.yaml
+.render/
+
+# Private overlay: proprietary dataset specs, cohort adapters, internal docs,
+# brand assets, real cluster.yaml. See overlays/README.md.
+overlays/private/
+
+# Editor / agent / dev scratch
+.claude/
+.playwright-mcp/
+
+# Large dev artifacts / screenshots that don't belong in the public tree
+*.zip
+/parallel-training-study.html
+/cal-*.png
+/card-*.png
+/kpi-*.png
+/qa-*.png
+/qa-*.jpeg
+/redesign-*.png
+docs/factory_dashboard.html
+docs/open_datasets.html

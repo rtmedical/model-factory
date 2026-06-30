@@ -1,0 +1,18 @@
+# Model-factory QA viewer.
+#
+# Single Deployment + NodePort Service. There's no k8s Ingress here — the
+# An external reverse proxy (e.g. Caddy/nginx/an ingress) can terminate TLS
+# for your public hostname and reverse-proxy it to this pod via
+# host.docker.internal:32443. See README.md for the recipe.
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: model-factory
+resources:
+  - deployment.yaml
+  - service.yaml
+  - dragonfly.yaml
+
+commonLabels:
+  app.kubernetes.io/managed-by: modelfactory
+  app.kubernetes.io/part-of: model-factory-qa

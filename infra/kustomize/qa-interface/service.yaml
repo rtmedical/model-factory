@@ -1,0 +1,23 @@
+# NodePort so the medgemma docker-compose Caddy (running on the same host
+# but in Docker, not k8s) can reach the qa-viewer pod via the node IP. The
+# An external reverse proxy can forward your public host → node:32443;
+# see infra/kustomize/qa-interface/README.md for the recipe.
+#
+# 32443 is inside k8s's default NodePort range (30000-32767). If it ever
+# collides, pick another free one and update the Caddy block + Makefile
+# smoke target in lockstep.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: qa-viewer
+  namespace: model-factory
+spec:
+  type: NodePort
+  selector:
+    app: qa-viewer
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    nodePort: 32443

@@ -1,0 +1,42 @@
+model-factory
+Copyright 2026 The model-factory authors
+
+This product includes software developed by the model-factory authors and
+contributors, licensed under the Apache License, Version 2.0 (see LICENSE).
+
+-------------------------------------------------------------------------------
+Third-party components
+-------------------------------------------------------------------------------
+
+This project orchestrates and builds on the following open-source projects. It
+does not redistribute their source, but its trainer/inference container images
+install them at build time. Each retains its own license:
+
+  * nnU-Net v2 (nnunetv2)            — Apache-2.0
+  * TotalSegmentator (code)          — Apache-2.0
+  * batchgenerators / batchgeneratorsv2 — Apache-2.0
+  * MLflow                           — Apache-2.0
+  * Kueue                            — Apache-2.0
+  * KubeRay / Ray                    — Apache-2.0
+  * SimpleITK                        — Apache-2.0
+  * nibabel                          — MIT
+  * pydantic, click, jinja2, pyyaml, rich — MIT / BSD-style
+
+-------------------------------------------------------------------------------
+IMPORTANT — model weight licensing (read before shipping trained models)
+-------------------------------------------------------------------------------
+
+TotalSegmentator distributes pretrained weights under MIXED licenses:
+
+  * CT weights : CC-BY-4.0          — commercial use OK, attribution required
+  * MR weights : CC-BY-NC-SA-4.0    — NON-COMMERCIAL ONLY
+
+Any model fine-tuned from TotalSegmentator MR weights inherits the
+CC-BY-NC-SA-4.0 non-commercial restriction. If you intend to use models
+commercially, do not derive them from upstream MR weights. Tag every
+registered model with its `base_model` and `dataset_license` so lineage stays
+auditable. See docs/licensing.md.
+
+Public datasets used in the examples (MSD, PDDCA, LUNA16, BTCV, TotalSegmentator,
+SegRap, etc.) each carry their own terms — consult the dataset provider before
+redistribution or commercial use.

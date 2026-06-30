@@ -1,0 +1,144 @@
+# Reap stale MIG-slice leases from `factory-mig-leases`.
+#
+# When `modelfactory.jobs.nnunet.submit()` creates a training Job, it leases
+# a MIG slice atomically (Python mirror of images/nnunet-trainer/claim-mig.sh)
+# and stamps the Job name into the lease ConfigMap. The submitter does NOT
+# release on Job completion — there is no in-container hook that can be
+# trusted to run on every termination path (OOM, node eviction, kill -9, …).
+#
+# This CronJob runs every 5 minutes and releases any lease whose owning Job
+# is in a terminal condition (Complete or Failed) or no longer exists.
+# Pending / Active Jobs are left alone.
+#
+# RBAC is scoped tight: read+patch factory-mig-leases, read jobs in this
+# namespace. No node, no secret, no other namespace.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: factory-mig-lease-reaper
+  namespace: model-factory
+  labels:
+    app.kubernetes.io/managed-by: modelfactory
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: factory-mig-lease-reaper
+  namespace: model-factory
+  labels:
+    app.kubernetes.io/managed-by: modelfactory
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["factory-mig-leases"]
+  verbs: ["get", "patch"]
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: factory-mig-lease-reaper
+  namespace: model-factory
+  labels:
+    app.kubernetes.io/managed-by: modelfactory
+subjects:
+- kind: ServiceAccount
+  name: factory-mig-lease-reaper
+  namespace: model-factory
+roleRef:
+  kind: Role
+  name: factory-mig-lease-reaper
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: factory-mig-lease-reaper
+  namespace: model-factory
+  labels:
+    app.kubernetes.io/managed-by: modelfactory
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      ttlSecondsAfterFinished: 3600
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/managed-by: modelfactory
+            factory.io/component: mig-lease-reaper
+        spec:
+          serviceAccountName: factory-mig-lease-reaper
+          restartPolicy: Never
+          containers:
+          - name: reaper
+            # bitnamilegacy/* mirrors what the rest of this cluster pulls
+            # (Bitnami moved community tags here in 2025); the public
+            # bitnami/kubectl:1.33 tag no longer resolves on docker.io.
+            image: bitnamilegacy/kubectl:1.33
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            command: ["/bin/bash", "-c"]
+            args:
+            - |
+              set -euo pipefail
+              NS="${NAMESPACE:-model-factory}"
+              LEASES_CM="factory-mig-leases"
+              released=0; kept=0; missing=0
+
+              mapfile -t LINES < <(
+                kubectl -n "$NS" get cm "$LEASES_CM" \
+                  -o go-template='{{range $k, $v := .data}}{{$k}}={{$v}}{{"\n"}}{{end}}'
+              )
+
+              for line in "${LINES[@]}"; do
+                uuid="${line%%=*}"
+                owner="${line#*=}"
+                [[ -z "$uuid" || "$owner" == "available" ]] && continue
+
+                release=false
+                if ! kubectl -n "$NS" get job "$owner" -o name >/dev/null 2>&1; then
+                  echo "[reaper] $uuid: owner job/$owner not found"
+                  release=true
+                  missing=$((missing+1))
+                else
+                  cond=$(kubectl -n "$NS" get job "$owner" \
+                    -o jsonpath='{.status.conditions[?(@.status=="True")].type}' 2>/dev/null || echo "")
+                  if [[ "$cond" == *"Complete"* || "$cond" == *"Failed"* ]]; then
+                    echo "[reaper] $uuid: owner job/$owner terminal ($cond)"
+                    release=true
+                  fi
+                fi
+
+                if $release; then
+                  if kubectl -n "$NS" patch cm "$LEASES_CM" --type json \
+                     -p "[{\"op\":\"replace\",\"path\":\"/data/$uuid\",\"value\":\"available\"}]" \
+                     >/dev/null 2>&1; then
+                    released=$((released+1))
+                  else
+                    echo "[reaper] $uuid: patch failed"
+                  fi
+                else
+                  kept=$((kept+1))
+                fi
+              done
+
+              echo "[reaper] summary: released=$released, kept=$kept, missing_owner=$missing"
+            resources:
+              requests:
+                cpu: "10m"
+                memory: "32Mi"
+              limits:
+                cpu: "200m"
+                memory: "128Mi"

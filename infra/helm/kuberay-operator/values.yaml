@@ -1,0 +1,44 @@
+# KubeRay operator: provisions RayCluster, RayJob, RayService CRs.
+#
+# Pinned to v1.2.2 — compatible with Kubernetes 1.33 (our kubeadm node) and
+# Ray 2.40 (what we ship in the trainer image).
+#
+# Kueue handles workload admission, so the optional Volcano/Yunikorn batch
+# scheduler integration is disabled — leaving it on would compete with the
+# kueue.x-k8s.io/queue-name routing on Ray pods.
+#
+# singleNamespaceInstall: false because Kueue's ray.io/raycluster integration
+# expects cluster-scoped RBAC. We install the operator into kuberay-system
+# but watch all namespaces.
+
+image:
+  repository: quay.io/kuberay/operator
+  tag: v1.6.1                   # bumped 2026-05-13 after v1.2.2 produced a worker-reconciler runaway
+  pullPolicy: IfNotPresent
+
+singleNamespaceInstall: false
+
+batchScheduler:
+  enabled: false
+
+# Modest footprint; the operator just watches CRs and creates pods.
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Run on the same node as the rest of the cluster — single-node anyway.
+nodeSelector: {}
+tolerations: []
+
+# Leader election off — single replica on a single-node cluster.
+leaderElection:
+  enabled: false
+
+# Don't auto-create CRDs from the chart on every upgrade; they're installed
+# once via `helm install --skip-crds=false` on the first run.
+crd:
+  create: true

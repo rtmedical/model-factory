@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Ruff
+        run: ruff check src/modelfactory/infra src/modelfactory/config.py src/modelfactory/jobs/nnunet.py tests
+      - name: Tests (dependency-light suites)
+        # The trainer-dep suites need torch/nnunetv2 (the trainer image); CI runs
+        # the infra + job-render + overlay tests, which need no GPU or torch.
+        run: pytest tests/infra tests/jobs tests/datasets/test_overlay.py -q
+
+  forbidden-strings:
+    # Durable guarantee that no site-specific / proprietary reference leaks into
+    # the public tree. Keep such content in overlays/private/ (git-ignored).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan tracked files for forbidden strings
+        run: |
+          set -euo pipefail
+          # Site-specific / proprietary content lives only in overlays/private/
+          # (git-ignored). The public tree must stay free of these. Add new
+          # patterns here as needed; keep all real cohort data in the overlay.
+          # Note: the GitHub org "rtmedical" is intentionally public (brand kept),
+          # so we block internal *hostnames/domains* (rtmedical.<tld>), not the
+          # bare org name in a github.com/rtmedical/... URL. Case-insensitive (-i).
+          PATTERN='rtmedical\.[a-z]|nvidialaunchpad|\bautoseg\b|radformation|auto-?contour|(^|[^0-9])10\.1\.0\.[0-9]|brev-[a-z0-9]{2}|/data/(cancer-archive|hn|pelvis|thorax|doserad|doserad2026|medgemma|chupacabra|fusion-ml|cr-enhance)'
+          if git grep -niIE "$PATTERN" -- . ':(exclude).github/workflows/ci.yml' ; then
+            echo "::error::Forbidden site-specific/proprietary string in the public tree (above). Move it to overlays/private/ or genericize it."
+            exit 1
+          fi
+          echo "OK — no forbidden strings in the public tree."

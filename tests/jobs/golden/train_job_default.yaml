@@ -1,0 +1,60 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: train-fixedname
+  namespace: model-factory
+  labels:
+    app.kubernetes.io/managed-by: modelfactory
+    factory.io/dataset: dataset100-hippocampus
+    factory.io/configuration: 3d_fullres
+    factory.io/fold: "0"
+    kueue.x-k8s.io/queue-name: factory-lq
+    kueue.x-k8s.io/priority-class: fold-training
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 604800
+  parallelism: 1
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: modelfactory
+        factory.io/dataset: dataset100-hippocampus
+        factory.io/configuration: 3d_fullres
+        factory.io/fold: "0"
+    spec:
+      restartPolicy: Never
+      runtimeClassName: nvidia-legacy
+      nodeSelector:
+        factory.io/training: "true"
+      containers:
+      - name: trainer
+        image: nnunet-trainer:0.3.0-ray
+        imagePullPolicy: IfNotPresent
+        # bash -c wrapper: rsync the dataset's preprocessed/ dir from NFS into
+        # the /factory-ram tmpfs (read-hot path lives in RAM, ~30-60 s for the
+        # 65-92 GiB brain-MR datasets), then exec nnUNetv2_train with the
+        # original positional args. The .stage_complete sentinel makes the
+        # rsync idempotent so a restart-from-checkpoint doesn't re-pay it.
+        # Script + args are pre-built in Python (gotcha #5: no Jinja blocks here).
+        command: ["/bin/bash", "-c", "set -euo pipefail\nDATASET=\"${MFACTORY_DATASET:?MFACTORY_DATASET unset}\"\nSRC=\"${MFACTORY_NFS_PREPROC}/${DATASET}\"\nDST=\"${MFACTORY_RAM_PREPROC}/${DATASET}\"\nif [ -d \"$SRC\" ] \u0026\u0026 [ ! -f \"$DST/.stage_complete\" ]; then\n  mkdir -p \"$DST\"\n  echo \"[stage] rsyncing $SRC -\u003e $DST\"\n  t0=$SECONDS\n  rsync -a --delete \"$SRC/\" \"$DST/\"\n  touch \"$DST/.stage_complete\"\n  echo \"[stage] done in $((SECONDS - t0))s\"\nfi\nexec nnUNetv2_train \"$@\"\n"]
+        args: ["stage-wrapper", "Dataset100_Hippocampus", "3d_fullres", "0", "-tr", "nnUNetTrainerMLflow"]
+        env: [{"name": "MLFLOW_TRACKING_URI", "value": "http://mlflow:5000"}, {"name": "MLFLOW_S3_ENDPOINT_URL", "value": "http://factory-minio:9000"}, {"name": "AWS_ACCESS_KEY_ID", "valueFrom": {"secretKeyRef": {"key": "root-user", "name": "factory-minio"}}}, {"name": "AWS_SECRET_ACCESS_KEY", "valueFrom": {"secretKeyRef": {"key": "root-password", "name": "factory-minio"}}}, {"name": "MFACTORY_EXPERIMENT", "value": "Dataset100_Hippocampus__3d_fullres"}, {"name": "nnUNet_raw", "value": "/factory/datasets"}, {"name": "nnUNet_preprocessed", "value": "/factory-ram/preprocessed"}, {"name": "nnUNet_results", "value": "/factory/results"}, {"name": "nnUNet_n_proc_DA", "value": "18"}, {"name": "MFACTORY_NFS_PREPROC", "value": "/factory/preprocessed"}, {"name": "MFACTORY_RAM_PREPROC", "value": "/factory-ram/preprocessed"}, {"name": "MFACTORY_DATASET", "value": "Dataset100_Hippocampus"}, {"name": "NVIDIA_VISIBLE_DEVICES", "value": "MIG-PLACEHOLDER"}, {"name": "NVIDIA_DRIVER_CAPABILITIES", "value": "compute,utility"}, {"name": "MFACTORY_MIG_UUID", "value": "MIG-PLACEHOLDER"}]
+        resources:
+          requests:
+            cpu: "18"
+            memory: "48Gi"
+          limits:
+            cpu: "28"
+            memory: "160Gi"
+        volumeMounts:
+        - { name: factory-data, mountPath: /factory }
+        - { name: dshm,         mountPath: /dev/shm }
+        - { name: factory-ram,  mountPath: /factory-ram }
+      volumes:
+      - name: factory-data
+        persistentVolumeClaim: { claimName: factory-data-pvc }
+      - name: dshm
+        emptyDir: { medium: Memory, sizeLimit: "32Gi" }
+      - name: factory-ram
+        emptyDir: { medium: Memory, sizeLimit: "110Gi" }

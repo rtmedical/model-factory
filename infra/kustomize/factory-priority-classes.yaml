@@ -1,0 +1,30 @@
+# WorkloadPriorityClass (Kueue-specific, distinct from k8s PriorityClass).
+# Attach to a Job by labeling it:
+#   kueue.x-k8s.io/priority-class: interactive-eval
+#
+# Higher value wins. Combined with the ClusterQueue's preemption policy,
+# interactive-eval can evict fold-training, fold-training can evict hpo-sweep.
+
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: WorkloadPriorityClass
+metadata:
+  name: interactive-eval
+value: 100
+description: |
+  Manual evaluation runs, on-demand inference benchmarks. May preempt training.
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: WorkloadPriorityClass
+metadata:
+  name: fold-training
+value: 50
+description: |
+  Default for nnUNet fold training (the bulk of factory workload).
+---
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: WorkloadPriorityClass
+metadata:
+  name: hpo-sweep
+value: 10
+description: |
+  Hyperparameter sweeps, ad-hoc experiments. Preempted by anything more important.

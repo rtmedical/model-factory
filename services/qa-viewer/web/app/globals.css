@@ -1,0 +1,452 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   RT Medical — clinical-editorial token system
+
+   Part of the viewer's design system so
+   the two RT-branded apps share an identical token surface. If the design
+   system in medgemma-interface evolves, re-sync this file rather than
+   forking — keeping the apps in lockstep is the whole point.
+   --------------------------------------------------------------------------- */
+
+@theme {
+  --font-display: var(--font-fraunces), "Fraunces", ui-serif, Georgia, serif;
+  --font-sans:
+    var(--font-geist), "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, sans-serif;
+  --font-mono:
+    var(--font-geist-mono), "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --color-rt-paper: #ffffff;
+  --color-rt-mist: #f4f6fa;
+  --color-rt-mist-2: #ecf0f6;
+  --color-rt-line: #e4e7ee;
+  --color-rt-line-2: #d6dbe4;
+  --color-rt-ink: #0b0f19;
+  --color-rt-ink-2: #1f2937;
+  --color-rt-muted: #5b6577;
+  --color-rt-accent: #2196f3;
+  --color-rt-accent-2: #1976d2;
+
+  --color-rt-cyan: #00bcd4;
+  --color-rt-blue: #2196f3;
+  --color-rt-purple: #9c27b0;
+  --color-rt-pink: #e91e63;
+
+  --color-rt-pip-pending: color-mix(in oklab, var(--color-rt-accent) 25%, transparent);
+  --color-rt-pip-running: var(--color-rt-accent);
+  --color-rt-pip-ok: #10b981;
+  --color-rt-pip-error: #f43f5e;
+  --color-rt-rail: var(--color-rt-line-2);
+
+  /* Card-color palette (light mode). Each swatch contributes a tinted
+     background and ring; foreground is the rich variant used for ink
+     accents inside the card. Stay in sync with PALETTE in
+     src/modelfactory/qa/themes.py — adding/removing swatches here
+     requires the same change there or the backend will 400 on the new
+     key. */
+  --card-slate-bg: #64748b;
+  --card-slate-fg: #475569;
+  --card-slate-ring: #94a3b8;
+  --card-sky-bg: #0ea5e9;
+  --card-sky-fg: #0369a1;
+  --card-sky-ring: #38bdf8;
+  --card-indigo-bg: #6366f1;
+  --card-indigo-fg: #4338ca;
+  --card-indigo-ring: #818cf8;
+  --card-violet-bg: #8b5cf6;
+  --card-violet-fg: #6d28d9;
+  --card-violet-ring: #a78bfa;
+  --card-fuchsia-bg: #d946ef;
+  --card-fuchsia-fg: #a21caf;
+  --card-fuchsia-ring: #e879f9;
+  --card-rose-bg: #f43f5e;
+  --card-rose-fg: #be123c;
+  --card-rose-ring: #fb7185;
+  --card-amber-bg: #f59e0b;
+  --card-amber-fg: #b45309;
+  --card-amber-ring: #fbbf24;
+  --card-lime-bg: #84cc16;
+  --card-lime-fg: #4d7c0f;
+  --card-lime-ring: #a3e635;
+  --card-emerald-bg: #10b981;
+  --card-emerald-fg: #047857;
+  --card-emerald-ring: #34d399;
+  --card-teal-bg: #14b8a6;
+  --card-teal-fg: #0f766e;
+  --card-teal-ring: #2dd4bf;
+
+  --ease-rt: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-rt-step: 220ms;
+  --dur-rt-pip: 360ms;
+
+  --radius-rt: 0.875rem;
+  --radius-rt-sm: 0.5rem;
+  --radius-rt-lg: 1.125rem;
+  --radius-rt-xl: 1.5rem;
+
+  --shadow-rt-elevation-1: 0 1px 2px rgba(11, 18, 32, 0.04);
+  --shadow-rt-elevation-2:
+    0 4px 12px -4px rgba(11, 18, 32, 0.08), 0 1px 3px rgba(11, 18, 32, 0.04);
+  --shadow-rt-elevation-3:
+    0 12px 32px -8px rgba(11, 18, 32, 0.16), 0 4px 12px -2px rgba(11, 18, 32, 0.08);
+
+  /* Faint hairline used for instrument-panel grid lines (calendar day
+     columns, ruler ticks) — one notch lighter than --color-rt-line so it
+     reads as a substrate, not a border. */
+  --color-rt-grid: color-mix(in oklab, var(--color-rt-line) 55%, transparent);
+  /* Accent emphasis glow for the live "now" elements + primary actions. */
+  --shadow-rt-glow-accent:
+    0 0 0 1px color-mix(in oklab, var(--color-rt-accent) 40%, transparent),
+    0 6px 20px -6px color-mix(in oklab, var(--color-rt-accent) 45%, transparent);
+}
+
+:root[data-theme="dark"] {
+  --color-rt-paper: #0a0e17;
+  --color-rt-mist: #11151f;
+  --color-rt-mist-2: #161c2a;
+  --color-rt-line: #1f2532;
+  --color-rt-line-2: #2a3140;
+  --color-rt-ink: #e8edf5;
+  --color-rt-ink-2: #c7cfdd;
+  --color-rt-muted: #7a859b;
+  --color-rt-accent: #3da6ff;
+  --color-rt-accent-2: #1e88e5;
+
+  --color-rt-pip-ok: #34d399;
+  --color-rt-pip-error: #fb7185;
+
+  /* Dark-mode swatches: bg = vivid, fg = bright tint for ink-on-paper
+     legibility, ring stays mid-saturation. */
+  --card-slate-bg: #94a3b8;
+  --card-slate-fg: #cbd5e1;
+  --card-slate-ring: #64748b;
+  --card-sky-bg: #38bdf8;
+  --card-sky-fg: #7dd3fc;
+  --card-sky-ring: #0ea5e9;
+  --card-indigo-bg: #818cf8;
+  --card-indigo-fg: #a5b4fc;
+  --card-indigo-ring: #6366f1;
+  --card-violet-bg: #a78bfa;
+  --card-violet-fg: #c4b5fd;
+  --card-violet-ring: #8b5cf6;
+  --card-fuchsia-bg: #e879f9;
+  --card-fuchsia-fg: #f0abfc;
+  --card-fuchsia-ring: #d946ef;
+  --card-rose-bg: #fb7185;
+  --card-rose-fg: #fda4af;
+  --card-rose-ring: #f43f5e;
+  --card-amber-bg: #fbbf24;
+  --card-amber-fg: #fcd34d;
+  --card-amber-ring: #f59e0b;
+  --card-lime-bg: #a3e635;
+  --card-lime-fg: #bef264;
+  --card-lime-ring: #84cc16;
+  --card-emerald-bg: #34d399;
+  --card-emerald-fg: #6ee7b7;
+  --card-emerald-ring: #10b981;
+  --card-teal-bg: #2dd4bf;
+  --card-teal-fg: #5eead4;
+  --card-teal-ring: #14b8a6;
+
+  --shadow-rt-elevation-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-rt-elevation-2: 0 4px 12px -4px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-rt-elevation-3:
+    0 16px 40px -8px rgba(0, 0, 0, 0.6), 0 4px 12px -2px rgba(0, 0, 0, 0.5);
+
+  --color-rt-grid: color-mix(in oklab, var(--color-rt-line) 70%, transparent);
+  --shadow-rt-glow-accent:
+    0 0 0 1px color-mix(in oklab, var(--color-rt-accent) 45%, transparent),
+    0 6px 24px -4px color-mix(in oklab, var(--color-rt-accent) 55%, transparent);
+}
+
+@utility bg-rt-gradient {
+  background-image: linear-gradient(
+    90deg,
+    var(--color-rt-cyan) 0%,
+    var(--color-rt-blue) 33%,
+    var(--color-rt-purple) 66%,
+    var(--color-rt-pink) 100%
+  );
+}
+
+@utility text-rt-gradient {
+  background: linear-gradient(
+    90deg,
+    var(--color-rt-cyan),
+    var(--color-rt-blue),
+    var(--color-rt-purple),
+    var(--color-rt-pink)
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility bg-rt-mesh {
+  background-image:
+    radial-gradient(circle at 20% 0%, color-mix(in oklab, var(--color-rt-cyan) 10%, transparent) 0%, transparent 40%),
+    radial-gradient(circle at 80% 0%, color-mix(in oklab, var(--color-rt-pink) 10%, transparent) 0%, transparent 45%),
+    radial-gradient(circle at 50% 100%, color-mix(in oklab, var(--color-rt-purple) 8%, transparent) 0%, transparent 55%);
+}
+
+@utility border-rt-hairline {
+  border: 1px solid var(--color-rt-line);
+}
+
+/* Instrument-panel surface — a hair recessed from the paper, with a soft
+   top-light gradient + hairline so the dashboard header / calendar read as
+   a console plate rather than a flat card. */
+@utility rt-console {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--color-rt-paper) 92%, var(--color-rt-mist)) 0%,
+      var(--color-rt-paper) 38%
+    );
+  border: 1px solid var(--color-rt-line);
+  border-radius: var(--radius-rt-lg);
+  box-shadow:
+    var(--shadow-rt-elevation-2),
+    inset 0 1px 0 color-mix(in oklab, white 60%, transparent);
+}
+:root[data-theme="dark"] .rt-console {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--color-rt-mist-2) 70%, var(--color-rt-paper)) 0%,
+      var(--color-rt-paper) 44%
+    );
+  box-shadow:
+    var(--shadow-rt-elevation-2),
+    inset 0 1px 0 color-mix(in oklab, white 6%, transparent);
+}
+
+/* Atmospheric film grain — a tiny SVG turbulence tiled and held at very low
+   opacity. Pseudo-element so it layers above the surface fill but below
+   content (callers add `relative` + `isolate`). */
+@utility rt-grain {
+  position: relative;
+  isolation: isolate;
+}
+.rt-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.04;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+:root[data-theme="dark"] .rt-grain::after {
+  opacity: 0.06;
+  mix-blend-mode: screen;
+}
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+  html {
+    color-scheme: light;
+  }
+  html[data-theme="dark"] {
+    color-scheme: dark;
+  }
+  body {
+    background: var(--color-rt-paper);
+    color: var(--color-rt-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--color-rt-accent) 35%, transparent);
+  }
+  *:focus-visible {
+    outline: 2px solid var(--color-rt-accent);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-rt-line);
+    border-radius: 999px;
+    border: 2px solid var(--color-rt-paper);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-rt-line-2);
+  }
+  /* Tighter scrollbar for in-card scrollers (per-struct dice list,
+     etc.) — keeps the catalog card from feeling like it has a desktop
+     scrollbar grafted into it. */
+  .rt-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .rt-scroll::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--color-rt-muted) 35%, transparent);
+    border: none;
+    border-radius: 999px;
+  }
+  .rt-scroll::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in oklab, var(--color-rt-muted) 55%, transparent);
+  }
+  .rt-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--color-rt-muted) 35%, transparent) transparent;
+  }
+}
+
+@layer components {
+  .rt-card {
+    background: var(--color-rt-paper);
+    border: 1px solid var(--color-rt-line);
+    border-radius: var(--radius-rt);
+    box-shadow: var(--shadow-rt-elevation-1);
+  }
+
+  .rt-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
+    font-feature-settings: "ss01", "ss02";
+  }
+  .rt-display-italic {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-variation-settings: "SOFT" 100, "opsz" 144;
+    letter-spacing: -0.01em;
+  }
+
+  .rt-shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--color-rt-cyan),
+      var(--color-rt-blue),
+      var(--color-rt-purple),
+      var(--color-rt-pink),
+      var(--color-rt-cyan)
+    );
+    background-size: 200% 100%;
+    animation: rt-shimmer 1.6s linear infinite;
+  }
+  @keyframes rt-shimmer {
+    from { background-position: 0% 0%; }
+    to { background-position: -200% 0%; }
+  }
+
+  @keyframes rt-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+  .rt-pulse-dot { animation: rt-pulse 1.4s ease-in-out infinite; }
+
+  /* Staggered entrance — set `style="animation-delay: 40ms * i"` per item
+     for a cascading reveal on the dashboard load. Honors reduced-motion. */
+  @keyframes rt-rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .rt-rise {
+    animation: rt-rise 0.5s var(--ease-rt) both;
+  }
+
+  /* The live "now" line on the training calendar — a thin accent rule with
+     a breathing glow so the eye is drawn to where the present sits. */
+  @keyframes rt-nowline {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-rt-accent) 50%, transparent); opacity: 1; }
+    50% { box-shadow: 0 0 8px 1px color-mix(in oklab, var(--color-rt-accent) 55%, transparent); opacity: 0.85; }
+  }
+  .rt-nowline { animation: rt-nowline 2.4s ease-in-out infinite; }
+
+  /* Animated hatching for the in-progress portion of a Gantt bar — a slow
+     diagonal drift that signals "work happening" without being loud. */
+  @keyframes rt-stripe {
+    from { background-position: 0 0; }
+    to { background-position: 28px 0; }
+  }
+  .rt-live-stripe {
+    background-image: repeating-linear-gradient(
+      120deg,
+      transparent 0,
+      transparent 9px,
+      color-mix(in oklab, white 22%, transparent) 9px,
+      color-mix(in oklab, white 22%, transparent) 14px
+    );
+    background-size: 28px 28px;
+    animation: rt-stripe 1.1s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* Custom keyframes + Tailwind's always-on decorative pulse (status
+       accent strips, skeleton shimmers). Spinners (animate-spin) are left
+       running — they are transient loading indicators, and freezing them
+       mid-rotation reads as a broken UI. */
+    .rt-rise,
+    .rt-nowline,
+    .rt-live-stripe,
+    .rt-shimmer,
+    .rt-pulse-dot,
+    .animate-pulse {
+      animation: none !important;
+    }
+  }
+
+  /* Viewer-specific — the Cornerstone3D canvas needs a stable parent size. */
+  .rt-viewport-stack {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+  .rt-viewport-host {
+    position: relative;
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    background: #000;
+    border-radius: var(--radius-rt-sm);
+    overflow: hidden;
+  }
+  .rt-viewport-host canvas {
+    outline: none;
+  }
+  /* Slice scrubber pinned below the canvas. */
+  .rt-slice-slider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    background: color-mix(in oklab, var(--color-rt-paper) 85%, transparent);
+    border-top: 1px solid var(--color-rt-line);
+  }
+  .rt-slice-slider input[type="range"] {
+    flex: 1;
+    accent-color: var(--color-rt-accent);
+    cursor: pointer;
+  }
+  .rt-slice-slider .rt-slice-label {
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 10px;
+    color: var(--color-rt-muted);
+  }
+  .rt-slice-slider .rt-slice-counter {
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--color-rt-ink);
+    white-space: nowrap;
+    min-width: 4ch;
+    text-align: right;
+  }
+}

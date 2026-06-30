@@ -1,0 +1,93 @@
+{# Per-fold nnUNetv2 ResEnc training Job (generic across datasets).
+
+   Substitutions:
+     dataset_id     numeric (e.g. 23)
+     spec_slug      kebab-case (e.g. "pelvis-male-prostate")
+     dataset_name   nnUNet folder name (e.g. "Dataset023_PelvisMaleProstate")
+     fold           0..4
+     visible_uuid   one of the safe-pool GPU UUIDs (CLAUDE.md task #12)
+     git_sha        short commit SHA for the MLflow run name
+     plans          plans identifier (default "nnUNetResEncUNetXLPlans" — 40 GB
+                    target, fills the MIG 3g.40gb slices). Pass
+                    "nnUNetResEncUNetLPlans" (24 GB) for leaner runs.
+     trainer        trainer class (default "nnUNetTrainerMLflow")
+#}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: train-d{{ "%03d" | format(dataset_id) }}-f{{ fold }}
+  namespace: model-factory
+  labels:
+    app.kubernetes.io/managed-by: modelfactory
+    app: factory-train
+    factory.io/spec: {{ spec_slug }}
+    factory.io/dataset-id: "{{ dataset_id }}"
+    factory.io/fold: "{{ fold }}"
+    kueue.x-k8s.io/queue-name: factory-lq
+    kueue.x-k8s.io/priority-class: fold-training
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 604800
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: modelfactory
+        app: factory-train
+        factory.io/spec: {{ spec_slug }}
+        factory.io/dataset-id: "{{ dataset_id }}"
+        factory.io/fold: "{{ fold }}"
+    spec:
+      restartPolicy: Never
+      # `nvidia-legacy` honours the pod-spec NVIDIA_VISIBLE_DEVICES env.
+      # The CDI-based `nvidia` runtime overrides it via CDI annotations
+      # injected by the k8s device plugin, sending pods to whatever GPU
+      # the plugin picks (CLAUDE.md task #12 hazard, observed 2026-05-13).
+      runtimeClassName: nvidia-legacy
+      nodeSelector:
+        factory.io/training: "true"
+      containers:
+      - name: trainer
+        image: nnunet-trainer:2026-05-13
+        imagePullPolicy: IfNotPresent
+        command: ["nnUNetv2_train"]
+        args:
+        - "{{ dataset_id }}"
+        - "3d_fullres"
+        - "{{ fold }}"
+        - "-p"
+        - "{{ plans }}"
+        - "-tr"
+        - "{{ trainer }}"
+        - "--c"
+        env:
+        # Sole source of truth for GPU exposure now that we don't request
+        # nvidia.com/gpu (no device-plugin allocation, no CDI annotation,
+        # no override path). The submit script's `uuid_in_use` check is
+        # the parallelism guard against two folds claiming the same UUID.
+        - { name: NVIDIA_VISIBLE_DEVICES,   value: "{{ visible_uuid }}" }
+        - { name: NVIDIA_DRIVER_CAPABILITIES, value: "compute,utility" }
+        # MLflow file-store (no server required; agents read the dir directly).
+        - { name: MLFLOW_TRACKING_URI,     value: "file:///factory/mlflow" }
+        - { name: MFACTORY_EXPERIMENT,     value: "{{ dataset_name }}__3d_fullres" }
+        - { name: MFACTORY_RUN_NAME,       value: "fold_{{ fold }}_{{ git_sha }}" }
+        - { name: MFACTORY_METRICS_JSONL,  value: "1" }
+        # Standard nnUNetv2 env on the factory hostPath mount.
+        - { name: nnUNet_raw,              value: "/factory/datasets" }
+        - { name: nnUNet_preprocessed,     value: "/factory/preprocessed" }
+        - { name: nnUNet_results,          value: "/factory/results" }
+        - { name: nnUNet_n_proc_DA,        value: "24" }
+        resources:
+          requests:
+            cpu: "24"
+            memory: "120Gi"
+          limits:
+            cpu: "32"
+            memory: "150Gi"
+        volumeMounts:
+        - { name: factory-data, mountPath: /factory }
+        - { name: dshm,         mountPath: /dev/shm }
+      volumes:
+      - name: factory-data
+        hostPath: { path: /data/model-factory-nfs, type: Directory }
+      - name: dshm
+        emptyDir: { medium: Memory, sizeLimit: "32Gi" }

@@ -1,0 +1,49 @@
+# grafana/loki-stack chart bundles Loki (single binary) + Promtail (DaemonSet)
+# in one helm release. We want logs from anywhere with the factory.io/scrape label
+# plus the model-factory + monitoring namespaces.
+
+loki:
+  enabled: true
+  isDefault: false
+  persistence:
+    enabled: true
+    storageClassName: nfs-client
+    size: 100Gi
+  config:
+    limits_config:
+      retention_period: 30d
+      max_query_series: 5000
+    schema_config:
+      configs:
+      - from: 2026-01-01
+        store: tsdb
+        object_store: filesystem
+        schema: v13
+        index:
+          prefix: index_
+          period: 24h
+
+promtail:
+  enabled: true
+  config:
+    snippets:
+      pipelineStages:
+      - cri: {}
+      - labels:
+          namespace:
+          pod:
+          container:
+    # Default scrape config picks up /var/log/pods/* — works for all k8s pods.
+    serviceMonitor:
+      enabled: true
+      namespace: monitoring
+
+grafana:
+  enabled: false    # Grafana comes from kube-prometheus-stack; this just adds Loki datasource.
+
+prometheus:
+  enabled: false    # Prometheus also comes from kube-prometheus-stack.
+
+# Auto-create a Loki datasource in the kps Grafana via a ConfigMap labelled grafana_datasource.
+serviceMonitor:
+  enabled: true

@@ -1,0 +1,45 @@
+# RBAC for the Ray worker init container's claim-mig.sh:
+# permission to read the safe-UUIDs list and to patch the leases ConfigMap.
+#
+# Scoped tightly: only get/list the two ConfigMaps, no broader cluster access.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: factory-ray-worker
+  namespace: model-factory
+  labels:
+    app.kubernetes.io/managed-by: modelfactory
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: factory-mig-lease
+  namespace: model-factory
+  labels:
+    app.kubernetes.io/managed-by: modelfactory
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["factory-mig-uuids"]
+  verbs: ["get"]
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["factory-mig-leases"]
+  verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: factory-mig-lease
+  namespace: model-factory
+  labels:
+    app.kubernetes.io/managed-by: modelfactory
+subjects:
+- kind: ServiceAccount
+  name: factory-ray-worker
+  namespace: model-factory
+roleRef:
+  kind: Role
+  name: factory-mig-lease
+  apiGroup: rbac.authorization.k8s.io

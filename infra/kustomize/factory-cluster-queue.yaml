@@ -1,0 +1,54 @@
+# ClusterQueue: cluster-wide pool of resources jobs draw from.
+#
+# Hard partition: GPUs 3-7 are MIG-partitioned (3g.40gb × 2 per card = 10
+# slices) and reserved for the training factory; medgemma vLLM (running
+# directly on containerd, NOT in k8s) is locked at tp=2 on GPUs 1+2 per
+# CLAUDE.md non-negotiable #2. GPU 0 stays whole for doserad. With vLLM's
+# footprint fixed there's no headroom to reserve — the factory consumes all
+# 10 MIG slices when fully loaded. The Kueue quota of 10 enables two
+# concurrent 5-fold campaigns; was 5, bumped 2026-05-14 alongside the
+# brain-MR specialist re-split (056-062).
+#
+# CPU and memory sized to give a 16-32 CPU + 64-128 GiB envelope per
+# concurrent fold while leaving room for the kubelet, control plane,
+# monitoring, and vLLM.
+#
+# preemption.withinClusterQueue: LowerPriority means a higher-priority
+# Workload (e.g. interactive-eval) can evict lower-priority running jobs
+# (e.g. hpo-sweep). reclaimWithinCohort is irrelevant with a single CQ but
+# kept consistent for future expansion.
+#
+# stopPolicy: None — jobs run to completion. queueingStrategy: BestEffortFIFO
+# avoids head-of-line blocking when a big job can't fit.
+
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ClusterQueue
+metadata:
+  name: factory-cq
+spec:
+  namespaceSelector: {}            # all namespaces (we only use model-factory)
+  queueingStrategy: BestEffortFIFO
+  preemption:
+    withinClusterQueue: LowerPriority
+    reclaimWithinCohort: LowerPriority
+  resourceGroups:
+  - coveredResources: ["cpu", "memory", "nvidia.com/gpu"]
+    flavors:
+    - name: flavor-h100
+      resources:
+      - name: "cpu"
+        nominalQuota: "196"          # Node has 208 vCPUs allocatable; reserve ~12 for system overhead
+                                     # (kubelet, calico, control plane, Ray head, MLflow/Postgres/MinIO).
+                                     # Lowered from 220 on 2026-05-14 — at 220 Kueue admitted Workloads
+                                     # the node couldn't physically schedule (3 convert pods stuck Pending),
+                                     # and the kubelet has no systemReserved/kubeReserved configured so
+                                     # the safety net is the Kueue cap itself. nnUNet's MultiThreadedAugmenter
+                                     # is sensitive to CPU starvation (train-d045-f2 died on worker timeout).
+      - name: "memory"
+        nominalQuota: "1700Gi"       # of 1.8 TiB total — head (8 Gi) + 8 workers (96 Gi each) + headroom
+      - name: "nvidia.com/gpu"
+        nominalQuota: "10"           # Matches the 10 MIG 3g.40gb slices on GPUs 3-7 (was 5 → 10 on
+                                     # 2026-05-14 to allow two concurrent 5-fold campaigns across the
+                                     # brain-MR specialist re-split). Ray workers DON'T request
+                                     # nvidia.com/gpu (they pin MIG slices); this quota constrains
+                                     # ad-hoc Jobs that go through the device plugin.

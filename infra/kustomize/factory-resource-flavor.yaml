@@ -1,0 +1,18 @@
+# ResourceFlavor describes the physical compute that backs quota in a
+# ClusterQueue. We only have one node and one GPU type, so one flavor.
+#
+# nodeLabels: pods admitted under this flavor are pinned to nodes matching
+#   both labels (Kueue injects them as nodeSelectors at admission time).
+# tolerations:   currently none — we don't taint the node.
+#
+# The product label is set automatically by the NVIDIA GPU Operator's
+# gpu-feature-discovery on the H100 node.
+
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ResourceFlavor
+metadata:
+  name: flavor-h100
+spec:
+  nodeLabels:
+    nvidia.com/gpu.product: NVIDIA-H100-80GB-HBM3
+    factory.io/training: "true"

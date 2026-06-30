@@ -1,0 +1,43 @@
+# Kueue chart values (v0.15+). Annotation-based queue routing is gone — jobs
+# must carry the LABEL `kueue.x-k8s.io/queue-name: factory-lq`.
+#
+# Single-node cluster — controller manager runs with 1 replica.
+
+controllerManager:
+  replicas: 1
+  manager:
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 1
+        memory: 512Mi
+    # No leader election needed on a single-replica setup, but keep it on by
+    # default in case we ever scale out.
+    featureGates: ""
+
+# Kueue integrations: which workload kinds Kueue admits.
+#
+# - batch/job: the existing nnUNet fold Jobs (CLAUDE.md non-negotiable #4).
+# - ray.io/raycluster: tried but hits a reconcile loop with KubeRay 1.2.2
+#   (Kueue clears suspend without creating a Workload; KubeRay reacts by
+#   creating worker pods; Kueue re-suspends; KubeRay deletes; repeat
+#   ~once/second → 800+ orphan pods in 60 seconds). Disabled for now;
+#   the RayCluster runs outside Kueue admission. Re-enable once KubeRay
+#   ships a fix or we move to Kueue 0.18+.
+managerConfig:
+  controllerManager:
+    integrations:
+      frameworks:
+      - "batch/job"
+
+metrics:
+  prometheusNamespace: monitoring
+  serviceMonitor:
+    enabled: true
+
+# Use the cluster-internal cert-manager if present; otherwise rely on the
+# chart's bundled webhook cert generator.
+webhook:
+  enable: true

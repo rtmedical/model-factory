@@ -1,0 +1,87 @@
+{# Kubernetes Job manifest for one nnUNetv2 fold training run.
+   Rendered by modelfactory.jobs.nnunet.submit().
+
+   Kueue contract (v0.15+):
+     - label `kueue.x-k8s.io/queue-name`: LABEL not annotation (annotation form removed)
+     - label `kueue.x-k8s.io/priority-class` for preemption ordering
+
+   GPU contract — MIG-UUID pinning (post-2026-05-20):
+     - The leased MIG UUID is baked into env_pairs as NVIDIA_VISIBLE_DEVICES
+       *before* this template is rendered (modelfactory.jobs.nnunet._lease_mig_uuid).
+     - runtimeClassName: nvidia-legacy honours the env value; the default
+       `nvidia` runtime would override it via CDI annotations (CLAUDE.md
+       non-negotiable #2 + memory `gpu_runtime_class_lesson.md`).
+     - No `nvidia.com/gpu` resource request: the device plugin advertises
+       both MIG slices on GPUs 3-7 AND the whole un-MIG'd cards (GPUs 0/1/2),
+       so requesting it can leak training to GPU 0 (reserved for the QA viewer)
+       or GPUs 1/2 (vLLM medgemma). The lease ConfigMap + the 10-slice safe
+       pool are the only allocators.
+
+   Pod contract:
+     - shm-size: emptyDir of medium: Memory at /dev/shm (Job spec equivalent of --shm-size)
+
+   Inputs:
+     args: list[str]        positional + flag args for nnUNetv2_train
+     env_pairs: list[dict]  [{name, value | valueFrom}, ...] — includes
+                            NVIDIA_VISIBLE_DEVICES={leased MIG UUID}
+#}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ job_name }}
+  namespace: {{ namespace }}
+  labels:
+    app.kubernetes.io/managed-by: modelfactory
+    factory.io/dataset: {{ dataset | replace('_', '-') | lower }}
+    factory.io/configuration: {{ configuration }}
+    factory.io/fold: "{{ fold }}"
+    kueue.x-k8s.io/queue-name: {{ queue_name }}
+    kueue.x-k8s.io/priority-class: {{ priority_class }}
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 604800
+  parallelism: 1
+  completions: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: modelfactory
+        factory.io/dataset: {{ dataset | replace('_', '-') | lower }}
+        factory.io/configuration: {{ configuration }}
+        factory.io/fold: "{{ fold }}"
+    spec:
+      restartPolicy: Never
+      {{ runtime_class_line }}
+      nodeSelector: {{ node_selector | tojson }}
+      containers:
+      - name: trainer
+        image: {{ image }}
+        imagePullPolicy: IfNotPresent
+        # bash -c wrapper: rsync the dataset's preprocessed/ dir from NFS into
+        # the /factory-ram tmpfs (read-hot path lives in RAM, ~30-60 s for the
+        # 65-92 GiB brain-MR datasets), then exec nnUNetv2_train with the
+        # original positional args. The .stage_complete sentinel makes the
+        # rsync idempotent so a restart-from-checkpoint doesn't re-pay it.
+        # Script + args are pre-built in Python (gotcha #5: no Jinja blocks here).
+        command: {{ command | tojson }}
+        args: {{ args | tojson }}
+        env: {{ env_pairs | tojson }}
+        resources:
+          requests:
+            cpu: "{{ cpu_request }}"
+            memory: "{{ memory_request }}"
+          limits:
+            cpu: "{{ cpu_limit }}"
+            memory: "{{ memory_limit }}"
+            {{ gpu_limit_line }}
+        volumeMounts:
+        - { name: factory-data, mountPath: /factory }
+        - { name: dshm,         mountPath: /dev/shm }
+        - { name: factory-ram,  mountPath: /factory-ram }
+      volumes:
+      - name: factory-data
+        persistentVolumeClaim: { claimName: factory-data-pvc }
+      - name: dshm
+        emptyDir: { medium: Memory, sizeLimit: "{{ shm_size }}" }
+      - name: factory-ram
+        emptyDir: { medium: Memory, sizeLimit: "{{ ram_stage_size }}" }

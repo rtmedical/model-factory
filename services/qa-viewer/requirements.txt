@@ -1,0 +1,8 @@
+# Layered on top of the existing trainer image (nnunet-trainer:*), which
+# already ships torch + nnunetv2 + SimpleITK + numpy. Do NOT add torch here
+# (CLAUDE.md non-negotiable #5).
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+nibabel>=5.2
+pydantic>=2.6

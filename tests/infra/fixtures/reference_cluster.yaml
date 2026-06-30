@@ -1,0 +1,81 @@
+# Reference ClusterSpec that reproduces the live H100 deployment.
+# Used by tests/infra/test_render.py to prove the generator renders manifests
+# whose pod templates are identical to what is running (a diff-clean apply →
+# no worker churn). This is the regression net behind the open-sourcing safety
+# guarantee. It doubles as a worked example of every field.
+apiVersion: modelfactory.io/v1
+kind: ClusterSpec
+
+cluster:
+  namespace: model-factory
+  nodeSelector:
+    factory.io/training: "true"
+  nodes: [reference-h100-node]
+
+gpu:
+  mode: mig
+  product: NVIDIA-H100-80GB-HBM3
+  mig:
+    runtimeClassName: nvidia-legacy
+    provisioner: preexisting
+    profile: 3g.40gb
+    layout:
+      0: { mig: false }   # reserved (QA viewer / whole card) — never pooled
+      1: { mig: 2 }
+      2: { mig: 2 }
+      3: { mig: 2 }
+      4: { mig: 2 }
+      5: { mig: 2 }
+      6: { mig: 2 }
+      7: { mig: 2 }
+    # Order is load-bearing: it fixes the slice-UUID -> mig-N mapping. GPUs 3-7
+    # were pooled first (mig-0..9), GPUs 1-2 added later (mig-10..13).
+    poolGpus: [3, 4, 5, 6, 7, 1, 2]
+    # mig-8 (GPU7 slice 0) trips an NVML allocator assert; parked at replicas 0
+    # until a GI/CI rebuild.
+    disabledWorkerGroups: [mig-8]
+
+rayWorker:
+  image: nnunet-trainer:0.3.0-ray
+  rayVersion: "2.40.0"
+  clusterName: factory-ray
+  default:
+    cpuRequest: "18"
+    cpuLimit: "28"
+    memoryRequest: "48Gi"
+    memoryLimit: "160Gi"
+    nProcDa: "18"
+    shmSize: "32Gi"
+    ramStageSize: "110Gi"
+    numCpusRay: "20"
+  tiers:
+    # The reclaimed GPUs 1+2 run leaner (the 208-core node is the real cap).
+    - gpus: [1, 2]
+      cpuRequest: "4"
+      nProcDa: "12"
+  head:
+    cpuRequest: "2"
+    cpuLimit: "4"
+    memoryRequest: "8Gi"
+    memoryLimit: "16Gi"
+    numCpusRay: "2"
+
+kueue:
+  gpuQuota: 10          # live quota wasn't bumped when GPUs 1+2 were added
+  cpuQuota: "196"
+  memoryQuota: "1700Gi"
+
+storage:
+  storageClass: nfs-client
+  mount: hostPath
+  nfsHostRoot: /data/model-factory-nfs
+  nfsPodRoot: /factory
+  ramStage: true
+
+network:
+  dnsNdotsWorkaround: true
+  shortServiceNames: true
+
+secrets:
+  mlflowTrackingUri: http://mlflow:5000
+  s3EndpointUrl: http://factory-minio:9000

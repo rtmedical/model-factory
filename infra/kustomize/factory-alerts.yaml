@@ -1,0 +1,63 @@
+# PrometheusRule: alerts specific to the model-factory.
+# Loaded by the kube-prometheus-stack Prometheus (label-selected by `release: kps`).
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: factory-alerts
+  namespace: monitoring
+  labels:
+    release: kps
+spec:
+  groups:
+  - name: factory.gpu
+    interval: 1m
+    rules:
+    - alert: GPUXIDError
+      # DCGM exposes DCGM_FI_DEV_XID_ERRORS as a counter; non-zero = bad
+      expr: increase(DCGM_FI_DEV_XID_ERRORS[5m]) > 0
+      for: 0m
+      labels: { severity: critical }
+      annotations:
+        summary: "GPU XID error on {{ $labels.gpu }} ({{ $labels.UUID }})"
+        description: "Driver/hardware fault. Inspect dmesg and consider draining."
+
+    - alert: GPUMemoryOOMRisk
+      # Sustained > 90% used on a training-pod GPU
+      expr: |
+        (DCGM_FI_DEV_FB_USED / DCGM_FI_DEV_FB_TOTAL) > 0.90
+      for: 10m
+      labels: { severity: warning }
+      annotations:
+        summary: "GPU {{ $labels.gpu }} > 90% memory for 10m"
+
+  - name: factory.jobs
+    interval: 1m
+    rules:
+    - alert: TrainingJobFailed
+      expr: kube_job_status_failed{namespace="model-factory"} > 0
+      for: 1m
+      labels: { severity: warning }
+      annotations:
+        summary: "Job {{ $labels.job_name }} failed in model-factory"
+
+    - alert: NaNLossEmitted
+      # Custom counter from nnUNetTrainerMLflow — see trainers/mlflow_trainer.py
+      expr: increase(nnunet_nan_loss_total[5m]) > 0
+      for: 0m
+      labels: { severity: critical }
+      annotations:
+        summary: "NaN loss in {{ $labels.dataset }} fold {{ $labels.fold }}"
+        description: "Training has NaN loss. Job will likely produce a useless checkpoint."
+
+  - name: factory.storage
+    interval: 5m
+    rules:
+    - alert: NFSDiskNearFull
+      expr: |
+        (node_filesystem_avail_bytes{mountpoint="/data"} /
+         node_filesystem_size_bytes{mountpoint="/data"}) < 0.15
+      for: 30m
+      labels: { severity: warning }
+      annotations:
+        summary: "/data has <15% free"

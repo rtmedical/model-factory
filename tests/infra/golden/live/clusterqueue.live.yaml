@@ -1,0 +1,74 @@
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: ClusterQueue
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"kueue.x-k8s.io/v1beta2","kind":"ClusterQueue","metadata":{"annotations":{},"name":"factory-cq"},"spec":{"namespaceSelector":{},"preemption":{"reclaimWithinCohort":"LowerPriority","withinClusterQueue":"LowerPriority"},"queueingStrategy":"BestEffortFIFO","resourceGroups":[{"coveredResources":["cpu","memory","nvidia.com/gpu"],"flavors":[{"name":"flavor-h100","resources":[{"name":"cpu","nominalQuota":"196"},{"name":"memory","nominalQuota":"1700Gi"},{"name":"nvidia.com/gpu","nominalQuota":"10"}]}]}]}}
+  creationTimestamp: "2026-05-12T18:51:39Z"
+  finalizers:
+  - kueue.x-k8s.io/resource-in-use
+  generation: 3
+  name: factory-cq
+  resourceVersion: "18952938"
+  uid: 3a23568c-9e96-42b2-8a44-acda18d6f9f3
+spec:
+  flavorFungibility:
+    whenCanBorrow: MayStopSearch
+    whenCanPreempt: TryNextFlavor
+  namespaceSelector: {}
+  preemption:
+    borrowWithinCohort:
+      policy: Never
+    reclaimWithinCohort: LowerPriority
+    withinClusterQueue: LowerPriority
+  queueingStrategy: BestEffortFIFO
+  resourceGroups:
+  - coveredResources:
+    - cpu
+    - memory
+    - nvidia.com/gpu
+    flavors:
+    - name: flavor-h100
+      resources:
+      - name: cpu
+        nominalQuota: "196"
+      - name: memory
+        nominalQuota: 1700Gi
+      - name: nvidia.com/gpu
+        nominalQuota: "10"
+  stopPolicy: None
+status:
+  admittedWorkloads: 2
+  conditions:
+  - lastTransitionTime: "2026-05-12T18:51:39Z"
+    message: Can admit new workloads
+    observedGeneration: 3
+    reason: Ready
+    status: "True"
+    type: Active
+  flavorsReservation:
+  - name: flavor-h100
+    resources:
+    - borrowed: "0"
+      name: cpu
+      total: 20m
+    - borrowed: "0"
+      name: memory
+      total: 512Mi
+    - borrowed: "0"
+      name: nvidia.com/gpu
+      total: "0"
+  flavorsUsage:
+  - name: flavor-h100
+    resources:
+    - borrowed: "0"
+      name: cpu
+      total: 20m
+    - borrowed: "0"
+      name: memory
+      total: 512Mi
+    - borrowed: "0"
+      name: nvidia.com/gpu
+      total: "0"
+  pendingWorkloads: 0
+  reservingWorkloads: 2

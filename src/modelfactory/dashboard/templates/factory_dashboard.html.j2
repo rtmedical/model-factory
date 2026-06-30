@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RT Medical · Model Factory — Active training fleet</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --rtm-coral:#ff5149;
+  --rtm-coral-soft:#ff79744d;
+  --rtm-blue:#3f82ff;
+  --rtm-blue-deep:#3648d6;
+  --rtm-gradient:linear-gradient(125deg,#3f82ff 0%,#7a5aff 45%,#ff5149 100%);
+  --rtm-gradient-soft:linear-gradient(125deg,#3f82ff14 0%,#ff514914 100%);
+  --rtm-bg:#ffffff;
+  --rtm-bg-alt:#f6f6f6;
+  --rtm-bg-dark:#0a0a0a;
+  --rtm-text:#1c1c1c;
+  --rtm-text-muted:#707070;
+  --rtm-border:#e6e8eb;
+  --rtm-border-strong:#cfd3d8;
+  --rtm-ok:#1f9c66;
+  --rtm-warn:#d99b1c;
+  --rtm-bad:#c93d36;
+  --rtm-radius-pill:9999px;
+  --rtm-radius-card:14px;
+  --shadow-card:0 1px 2px rgba(15,20,30,.04), 0 4px 16px -8px rgba(15,20,30,.10);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--rtm-bg-alt);
+  color: var(--rtm-text);
+  font-family: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.shell { max-width: 1320px; margin: 0 auto; padding: 0 28px 64px; }
+
+/* ─── Hero ──────────────────────────────────────────────────────────── */
+.hero {
+  position: relative;
+  margin: 0 -28px;
+  padding: 32px 28px 28px;
+  background: var(--rtm-bg-dark);
+  color: #fff;
+  overflow: hidden;
+}
+.hero::before {
+  content: "";
+  position: absolute; inset: -1px 0 auto 0;
+  height: 3px;
+  background: var(--rtm-gradient);
+}
+.hero::after {
+  content: "";
+  position: absolute;
+  right: -120px; top: -120px;
+  width: 460px; height: 460px;
+  border-radius: 50%;
+  background: var(--rtm-gradient);
+  filter: blur(80px);
+  opacity: 0.28;
+  pointer-events: none;
+}
+.hero-inner {
+  display: flex; gap: 28px; align-items: center; justify-content: space-between;
+  max-width: 1320px; margin: 0 auto; position: relative; z-index: 1;
+  flex-wrap: wrap;
+}
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand img {
+  height: 36px; width: auto; display: block;
+  background: #fff; padding: 4px 10px; border-radius: 6px;
+}
+.brand-wm {
+  font-weight: 600; font-size: 13px; letter-spacing: .04em;
+  text-transform: uppercase; color: rgba(255,255,255,.75);
+}
+.brand-wm strong { color: #fff; font-weight: 700; }
+.brand-wm .dot { margin: 0 8px; color: var(--rtm-coral); }
+.hero h1 {
+  margin: 14px 0 6px; font-size: 30px; line-height: 1.15; font-weight: 600;
+  letter-spacing: -.015em; max-width: 700px;
+}
+.hero h1 .grad {
+  background: var(--rtm-gradient);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+.hero p.sub {
+  margin: 0; color: rgba(255,255,255,.7); font-size: 13.5px;
+  max-width: 760px;
+}
+.hero-aside {
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-end;
+  font-size: 12px; color: rgba(255,255,255,.65);
+  text-align: right;
+}
+.hero-aside .ts { color: #fff; font-weight: 600; font-size: 14px; }
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16);
+  padding: 5px 12px; border-radius: var(--rtm-radius-pill);
+  font-size: 12px; color: #fff;
+}
+.hero-tag .pulse {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--rtm-coral);
+  box-shadow: 0 0 0 0 rgba(255,81,73,.7); animation: pulse 1.8s infinite;
+}
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(255,81,73,.6); }
+  70%  { box-shadow: 0 0 0 10px rgba(255,81,73,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,81,73,0); }
+}
+
+/* ─── KPI strip ─────────────────────────────────────────────────────── */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin: -24px 0 36px;
+  position: relative; z-index: 2;
+}
+.kpi {
+  background: #fff;
+  border: 1px solid var(--rtm-border);
+  border-radius: var(--rtm-radius-card);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-card);
+}
+.kpi-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--rtm-text-muted); margin-bottom: 4px;
+  font-weight: 600;
+}
+.kpi-value {
+  font-size: 22px; font-weight: 600; line-height: 1.1;
+  color: var(--rtm-text);
+  background: var(--rtm-gradient);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.kpi-hint { font-size: 12px; color: var(--rtm-text-muted); margin-top: 4px; }
+
+/* ─── Stop-candidates panel ─────────────────────────────────────────── */
+.stop-panel {
+  margin: 36px 0 0; padding: 18px 20px 16px;
+  background: linear-gradient(180deg, #fff7f6 0%, #fff 100%);
+  border: 1px solid #f7d4d1; border-left: 4px solid var(--rtm-coral);
+  border-radius: var(--rtm-radius-card);
+  box-shadow: var(--shadow-card);
+}
+.stop-panel h2 {
+  margin: 0 0 4px; font-size: 16px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.stop-panel h2 svg { width: 16px; height: 16px; }
+.stop-panel .lede {
+  font-size: 12.5px; color: var(--rtm-text-muted); margin: 0 0 14px;
+}
+.stop-panel .lede code {
+  background: var(--rtm-bg-alt); border: 1px solid var(--rtm-border);
+  padding: 1px 6px; border-radius: 4px; font-size: 12px;
+}
+.stop-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.stop-table th {
+  text-align: left; font-weight: 600; font-size: 11px;
+  text-transform: uppercase; letter-spacing: .06em; color: var(--rtm-text-muted);
+  padding: 6px 10px 8px; border-bottom: 1px solid var(--rtm-border);
+  white-space: nowrap;
+}
+.stop-table td {
+  padding: 10px; border-bottom: 1px solid #f0f1f3; vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+.stop-table tbody tr:last-child td { border-bottom: none; }
+.stop-table tbody tr:nth-child(1) { background: #fff5f4; }
+.stop-table .ds-id-cell {
+  display: inline-block; padding: 2px 7px;
+  background: var(--rtm-bg-alt); border: 1px solid var(--rtm-border);
+  border-radius: 4px; font-weight: 600; font-size: 11px;
+  font-variant-numeric: tabular-nums; color: var(--rtm-text);
+}
+.stop-table .ds-name { font-weight: 500; }
+.stop-table .progress-cell { min-width: 110px; }
+.stop-table .progress-bar {
+  width: 100%; height: 5px; background: var(--rtm-bg-alt);
+  border-radius: 3px; overflow: hidden;
+}
+.stop-table .progress-bar .fill {
+  display: block; height: 100%; background: var(--rtm-blue);
+}
+.stop-table .progress-meta { font-size: 11px; color: var(--rtm-text-muted); margin-top: 3px; }
+.stop-table .score-cell .score-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 2px 9px; border-radius: var(--rtm-radius-pill);
+  font-weight: 600; font-size: 12px;
+}
+.stop-table .score-pill.high { background: #fde8e6; color: #a52d28; }
+.stop-table .score-pill.med  { background: #fdf3df; color: #8a6212; }
+.stop-table .score-pill.low  { background: #e3f5ed; color: #166f4d; }
+.stop-table .rationale { color: var(--rtm-text-muted); font-size: 12px; }
+.stop-table .delete-cmd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px; color: var(--rtm-text);
+  background: var(--rtm-bg-alt); border: 1px solid var(--rtm-border);
+  padding: 2px 6px; border-radius: 4px;
+  user-select: all;
+}
+.stop-panel-empty {
+  margin: 8px 0 4px; padding: 14px;
+  background: #f6fbf8; border: 1px dashed #b6e3cb; border-radius: 8px;
+  color: var(--rtm-ok); font-size: 13px;
+}
+
+/* ─── Section headings ──────────────────────────────────────────────── */
+.section-title {
+  display: flex; align-items: baseline; gap: 12px;
+  margin: 32px 0 14px;
+}
+.section-title h2 {
+  margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -.005em;
+  display: inline-flex; align-items: center; gap: 10px;
+}
+.section-title h2 .dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--rtm-coral);
+  box-shadow: 0 0 0 0 rgba(255,81,73,.5); animation: pulse 1.8s infinite;
+}
+.section-title h2 .dot.complete {
+  background: var(--rtm-ok); box-shadow: none; animation: none;
+}
+.section-title h2 .dot.paused {
+  background: var(--rtm-border-strong); box-shadow: none; animation: none;
+}
+.section-title .count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 22px; height: 22px; padding: 0 7px;
+  border-radius: var(--rtm-radius-pill);
+  background: var(--rtm-bg-alt); border: 1px solid var(--rtm-border);
+  font-size: 12px; font-weight: 600; color: var(--rtm-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.section-title .count.live { background: var(--rtm-gradient); border: none; color: #fff; }
+.section-title .count.complete { background: var(--rtm-ok); border: none; color: #fff; }
+.section-title .accent {
+  flex: 1; height: 1px; background: var(--rtm-border);
+}
+.section-title .meta { font-size: 12px; color: var(--rtm-text-muted); }
+
+/* ─── Complete section subtle green tint ──────────────────────────── */
+.complete-grid .card {
+  border-color: #b6e3cb;
+  background: #f9fdfb;
+}
+.complete-grid .card .ds-id {
+  background: var(--rtm-ok);
+}
+
+/* ─── Paused section visual de-emphasis ─────────────────────────────── */
+.paused-grid .card {
+  background: var(--rtm-bg-alt);
+  opacity: 0.92;
+}
+.paused-grid .card:hover { opacity: 1; }
+.paused-grid .card .ds-name { color: var(--rtm-text-muted); }
+.paused-grid .card .stat-value.accent {
+  -webkit-text-fill-color: var(--rtm-text-muted);
+  background: none;
+}
+.paused-grid .card .ds-id {
+  background: var(--rtm-border-strong);
+}
+.paused-grid .card .spark-row {
+  background: var(--rtm-bg);
+  border: 1px dashed var(--rtm-border);
+}
+
+/* ─── Dataset grid ──────────────────────────────────────────────────── */
+.grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+@media (min-width: 1100px) { .grid { grid-template-columns: 1fr 1fr; } }
+
+.card {
+  background: #fff;
+  border: 1px solid var(--rtm-border);
+  border-radius: var(--rtm-radius-card);
+  padding: 18px 18px 16px;
+  display: flex; flex-direction: column; gap: 12px;
+  position: relative;
+  transition: box-shadow .2s ease, transform .2s ease;
+}
+.card:hover { box-shadow: var(--shadow-card); }
+.card[data-status="training"]::before {
+  content: "";
+  position: absolute; left: 0; top: 16px; bottom: 16px; width: 3px;
+  background: var(--rtm-gradient);
+  border-radius: 3px;
+}
+.card[data-status="complete"]::before {
+  content: "";
+  position: absolute; left: 0; top: 16px; bottom: 16px; width: 3px;
+  background: var(--rtm-ok);
+  border-radius: 3px;
+}
+.card[data-status="stalled"]::before {
+  content: "";
+  position: absolute; left: 0; top: 16px; bottom: 16px; width: 3px;
+  background: var(--rtm-border-strong);
+  border-radius: 3px;
+}
+.card[data-status="not_started"]::before {
+  content: "";
+  position: absolute; left: 0; top: 16px; bottom: 16px; width: 3px;
+  background: var(--rtm-coral);
+  border-radius: 3px;
+  opacity: 0.55;
+}
+
+.card-head {
+  display: flex; gap: 12px; align-items: flex-start; justify-content: space-between;
+  flex-wrap: wrap;
+}
+.card-title { display: flex; gap: 10px; align-items: center; }
+.ds-id {
+  display: inline-block;
+  font-size: 11px; font-weight: 700; letter-spacing: .04em;
+  color: #fff; padding: 3px 10px;
+  border-radius: var(--rtm-radius-pill);
+  background: var(--rtm-gradient);
+  font-variant-numeric: tabular-nums;
+}
+.ds-name { font-size: 16px; font-weight: 600; letter-spacing: -.005em; }
+
+.card-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 500; letter-spacing: .01em;
+  padding: 3px 10px;
+  border-radius: var(--rtm-radius-pill);
+  border: 1px solid var(--rtm-border);
+  background: #fff;
+  color: var(--rtm-text-muted);
+}
+.pill.region-brain { color: var(--rtm-blue-deep); border-color: #c8d4ff; background: #f4f7ff; }
+.pill.region-head_neck { color: #6d4caa; border-color: #dccdfa; background: #f7f2ff; }
+.pill.region-pelvis { color: #b04a86; border-color: #f5cce0; background: #fdf2f7; }
+.pill.region-abdomen { color: #a55a1f; border-color: #f3d4b8; background: #fcf3e7; }
+.pill.region-thorax { color: #2f7d8a; border-color: #c4e4e9; background: #eef8fa; }
+.pill.modality-MR-T1 { color: var(--rtm-blue); border-color: #c8d4ff; background: #f0f5ff; }
+.pill.modality-CT { color: var(--rtm-coral); border-color: #ffd2cf; background: #fff3f2; }
+.pill.quality-gold { color: #a06900; border-color: #ffe2a8; background: #fff7e8; }
+.pill.quality-silver { color: #595c61; border-color: var(--rtm-border-strong); background: var(--rtm-bg-alt); }
+.pill.quality-bronze { color: #8a4a2a; border-color: #f0d2bd; background: #fbeee5; }
+
+.status-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 600; letter-spacing: .03em;
+  padding: 3px 10px 3px 8px;
+  border-radius: var(--rtm-radius-pill);
+  border: 1px solid transparent;
+}
+.status-pill.training {
+  color: var(--rtm-coral); background: #fff1f0; border-color: #ffd2cf;
+}
+.status-pill.training .pulse {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--rtm-coral);
+  box-shadow: 0 0 0 0 rgba(255,81,73,.6); animation: pulse 1.8s infinite;
+}
+.status-pill.complete {
+  color: var(--rtm-ok); background: #ecf8f2; border-color: #b6e3cb;
+}
+.status-pill.complete .check {
+  width: 11px; height: 11px; display: inline-flex; align-items: center;
+  justify-content: center; color: var(--rtm-ok); font-weight: 700;
+  font-size: 12px; line-height: 1;
+}
+.status-pill.stalled {
+  color: var(--rtm-text-muted); background: var(--rtm-bg-alt);
+  border-color: var(--rtm-border);
+}
+.status-pill.not_started {
+  color: var(--rtm-blue-deep); background: #f0f5ff; border-color: #c8d4ff;
+}
+
+.card-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 4px 16px;
+  padding: 6px 0;
+  border-top: 1px solid var(--rtm-border);
+  border-bottom: 1px solid var(--rtm-border);
+}
+.stat { display: flex; flex-direction: column; padding: 6px 0; }
+.stat-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--rtm-text-muted); font-weight: 600;
+}
+.stat-value {
+  font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums;
+  color: var(--rtm-text); margin-top: 1px;
+}
+.stat-value.accent {
+  background: var(--rtm-gradient);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.spark-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--rtm-gradient-soft);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+.spark-row svg { display: block; flex-shrink: 0; }
+.spark-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.spark-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--rtm-text-muted); font-weight: 600;
+}
+.spark-current {
+  font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.spark-empty { font-size: 12px; color: var(--rtm-text-muted); font-style: italic; }
+
+.ds-desc {
+  font-size: 12.5px; line-height: 1.55; color: var(--rtm-text-muted);
+  margin: 0;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.classes { display: flex; gap: 6px; flex-wrap: wrap; }
+.cls-chip {
+  position: relative; overflow: hidden;
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--rtm-border);
+  background: #fff;
+  padding: 4px 10px;
+  border-radius: var(--rtm-radius-pill);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  z-index: 0;
+}
+.cls-chip::before {
+  content: "";
+  position: absolute; inset: 0;
+  width: calc(var(--w, 0%) * 1);
+  background: var(--rtm-gradient-soft);
+  z-index: -1;
+}
+.cls-chip .cls-name { color: var(--rtm-text); font-weight: 500; }
+.cls-chip .cls-dice {
+  color: var(--rtm-text); font-weight: 700;
+}
+.cls-chip.nan { color: var(--rtm-text-muted); border-color: var(--rtm-border); }
+.cls-chip.nan .cls-name { text-decoration: line-through; opacity: 0.6; }
+.cls-chip.nan .cls-dice { color: var(--rtm-bad); }
+
+/* ─── Structure table ───────────────────────────────────────────────── */
+.struct-table-wrap {
+  background: #fff;
+  border: 1px solid var(--rtm-border);
+  border-radius: var(--rtm-radius-card);
+  overflow: hidden;
+}
+.struct-table { width: 100%; border-collapse: collapse; }
+.struct-table th, .struct-table td {
+  padding: 10px 14px;
+  font-variant-numeric: tabular-nums;
+}
+.struct-table th {
+  background: var(--rtm-bg-alt);
+  text-align: left;
+  font-size: 11px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--rtm-text-muted); font-weight: 600;
+  border-bottom: 1px solid var(--rtm-border);
+}
+.struct-table td { font-size: 13px; border-bottom: 1px solid var(--rtm-border); }
+.struct-table tr:last-child td { border-bottom: none; }
+.struct-table .struct-name { font-weight: 500; color: var(--rtm-text); }
+.struct-table .dataset-cell { color: var(--rtm-text-muted); }
+.struct-table .dataset-cell .ds-id { margin-right: 6px; }
+.struct-table .dice-bar-cell { width: 320px; }
+.struct-table .dice-bar {
+  position: relative;
+  display: block;
+  height: 22px;
+  background: var(--rtm-bg-alt);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.struct-table .dice-bar .fill {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: var(--w);
+  background: var(--rtm-gradient);
+  border-radius: 5px;
+}
+.struct-table .dice-bar .val {
+  position: relative;
+  display: inline-flex; align-items: center; height: 100%;
+  padding: 0 8px; color: var(--rtm-text); font-weight: 600; font-size: 12px;
+}
+.struct-table tr.is-nan .dice-bar .val { color: var(--rtm-bad); }
+.struct-table .epoch-cell { color: var(--rtm-text-muted); }
+
+/* ─── Footer ────────────────────────────────────────────────────────── */
+.foot {
+  margin-top: 40px;
+  padding: 20px 24px;
+  background: #fff;
+  border: 1px solid var(--rtm-border);
+  border-radius: var(--rtm-radius-card);
+  font-size: 12px;
+  color: var(--rtm-text-muted);
+  line-height: 1.7;
+}
+.foot strong { color: var(--rtm-text); font-weight: 600; }
+.foot code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11.5px; background: var(--rtm-bg-alt); padding: 1px 6px;
+  border-radius: 4px; color: var(--rtm-text);
+}
+.foot a { color: var(--rtm-blue-deep); text-decoration: none; }
+.foot a:hover { text-decoration: underline; }
+.notes { color: var(--rtm-warn); margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="brand">
+        {% if ctx.logo_b64 %}
+        <img src="data:image/png;base64,{{ ctx.logo_b64 }}" alt="RT Medical Systems">
+        {% endif %}
+        <span class="brand-wm"><strong>RT Medical Systems</strong><span class="dot">·</span>Model Factory</span>
+      </div>
+      <h1>Active <span class="grad">training fleet</span></h1>
+      <p class="sub">{{ ctx.cluster_blurb }}</p>
+    </div>
+    <div class="hero-aside">
+      <span class="hero-tag"><span class="pulse"></span>Live snapshot</span>
+      <span class="ts">{{ ctx.snapshot_iso }}</span>
+      <span>node · {{ ctx.node }}</span>
+    </div>
+  </div>
+</header>
+
+<main class="shell">
+
+  <section class="kpis">
+    {% for k in ctx.kpis %}
+    <div class="kpi">
+      <div class="kpi-label">{{ k.label }}</div>
+      <div class="kpi-value">{{ k.value }}</div>
+      <div class="kpi-hint">{{ k.hint }}</div>
+    </div>
+    {% endfor %}
+  </section>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="rtm-grad-spark" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%"   stop-color="#3f82ff"/>
+        <stop offset="55%"  stop-color="#7a5aff"/>
+        <stop offset="100%" stop-color="#ff5149"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  {# ─── Stop candidates panel ───────────────────────────────────────── #}
+  <section class="stop-panel">
+    <h2>
+      <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+        <rect x="2" y="2" width="12" height="12" rx="2" fill="#ff5149"/>
+        <rect x="5.5" y="5.5" width="5" height="5" fill="#fff"/>
+      </svg>
+      Stop candidates &mdash; reclaim MIG slices for queued work
+    </h2>
+    <p class="lede">
+      Ranked by <code>plateau_strength × remaining_frac</code>: campaigns whose
+      dice has stopped moving but still have many of their 1000 epochs left.
+      Highest scores at the top = best to terminate.
+      {% if ctx.stop_candidates %}
+      Stop a job with
+      <code>kubectl -n model-factory delete job &lt;name&gt;</code>
+      using the slug shown in each row.
+      {% endif %}
+    </p>
+    {% if ctx.stop_candidates %}
+    <table class="stop-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>dataset</th>
+          <th class="progress-cell">epochs</th>
+          <th>dice (latest)</th>
+          <th>slope/ep</th>
+          <th>wall time</th>
+          <th>score</th>
+          <th>rationale</th>
+          <th>slug to delete</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in ctx.stop_candidates %}
+        {% set sc = c.stop_score or 0.0 %}
+        {% set tier = "high" if sc >= 0.5 else ("med" if sc >= 0.2 else "low") %}
+        {% set ep = c.last_epoch or 0 %}
+        {% set pct = (ep / 10) if ep else 0 %}
+        {% set slug = ('campaign-' + c.spec_key|replace('_','-'))[:38] %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>
+            <span class="ds-id-cell">D{{ "%03d"|format(c.dataset_id) }}</span>
+            <span class="ds-name">{{ c.name }}</span>
+          </td>
+          <td class="progress-cell">
+            <span class="progress-bar"><span class="fill" style="width: {{ pct|round(0) }}%"></span></span>
+            <div class="progress-meta">{{ ep }} / {{ 1000 }} ({{ pct|round(0) }}%)</div>
+          </td>
+          <td>{{ c.mean_fg_dice|dice }}</td>
+          <td>{{ c.dice_slope|slope }}</td>
+          <td>{{ c.wall_hours|hours }}</td>
+          <td class="score-cell"><span class="score-pill {{ tier }}">{{ c.stop_score|score }}</span></td>
+          <td class="rationale">{{ c.stop_rationale or "—" }}</td>
+          <td><span class="delete-cmd">{{ slug }}…</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="stop-panel-empty">
+      No clear stop candidates &mdash; either no live campaigns yet, every live one is still
+      improving (slope above plateau threshold), or none have enough val rows to score.
+    </div>
+    {% endif %}
+  </section>
+
+  {% macro render_card(c) -%}
+    {% set sp = spark_path(c.spark_points) %}
+    <article class="card" data-status="{{ c.status }}">
+      <header class="card-head">
+        <div class="card-title">
+          <span class="ds-id">D{{ "%03d"|format(c.dataset_id) }}</span>
+          <span class="ds-name">{{ c.name }}</span>
+        </div>
+        <div class="card-badges">
+          <span class="pill region-{{ c.region }}">{{ c.region|replace('_', ' ') }}</span>
+          <span class="pill modality-{{ c.modality }}">{{ c.modality }}</span>
+          <span class="pill quality-{{ c.quality_tier }}">{{ c.quality_tier }}</span>
+          <span class="status-pill {{ c.status }}">
+            {% if c.status == "training" %}<span class="pulse"></span>training{% elif c.status == "complete" %}<span class="check">✓</span>fold 0 done{% elif c.status == "stalled" %}paused{% else %}queued{% endif %}
+          </span>
+        </div>
+      </header>
+
+      <div class="card-stats">
+        <div class="stat"><span class="stat-label">epoch</span><span class="stat-value">{{ c.last_epoch if c.last_epoch is not none else '—' }}</span></div>
+        <div class="stat"><span class="stat-label">mean fg dice</span><span class="stat-value accent">{{ c.mean_fg_dice|dice }}</span></div>
+        <div class="stat"><span class="stat-label">ema dice</span><span class="stat-value">{{ c.ema_fg_dice|dice }}</span></div>
+        <div class="stat"><span class="stat-label">val loss</span><span class="stat-value">{{ c.val_loss|loss }}</span></div>
+        <div class="stat"><span class="stat-label">train loss</span><span class="stat-value">{{ c.train_loss|loss }}</span></div>
+        <div class="stat"><span class="stat-label">epoch time</span><span class="stat-value">{{ c.epoch_time_s|epoch_time }}</span></div>
+        <div class="stat"><span class="stat-label">gpu mem</span><span class="stat-value">{{ c.gpu_mem_mb|mem }}</span></div>
+      </div>
+
+      <div class="spark-row">
+        {% if c.spark_points|length >= 2 %}
+        <svg width="160" height="36" viewBox="0 0 160 36" role="img" aria-label="dice trajectory">
+          <path d="{{ sp.d }}" stroke="url(#rtm-grad-spark)" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="{{ '%.1f'|format(sp.last_x) }}" cy="{{ '%.1f'|format(sp.last_y) }}" r="2.6" fill="#ff5149"/>
+        </svg>
+        <div class="spark-meta">
+          <span class="spark-label">mean_fg_dice over epochs</span>
+          <span class="spark-current">{{ sp.last_label }}</span>
+        </div>
+        {% else %}
+        <span class="spark-empty">{% if c.last_epoch is none %}no validations yet · waiting on first epoch{% else %}only one validation point so far — sparkline needs ≥ 2{% endif %}</span>
+        {% endif %}
+      </div>
+
+      <p class="ds-desc">{{ c.description }}</p>
+
+      <div class="classes">
+        {% for cls in c.classes %}
+          {% if cls.is_nan %}
+            <span class="cls-chip nan" style="--w: 0%">
+              <span class="cls-name">{{ cls.canonical }}</span>
+              <span class="cls-dice">NaN</span>
+            </span>
+          {% else %}
+            <span class="cls-chip" style="--w: {{ cls.dice|pct }}%">
+              <span class="cls-name">{{ cls.canonical }}</span>
+              <span class="cls-dice">{{ cls.dice|dice }}</span>
+            </span>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </article>
+  {%- endmacro %}
+
+  {% if ctx.cards_live %}
+  <div class="section-title">
+    <h2><span class="dot"></span>Live training fleet</h2>
+    <span class="count live">{{ ctx.cards_live|length }}</span>
+    <span class="accent"></span>
+    <span class="meta">metrics.jsonl written in the last 10 min · sorted by mean fg dice</span>
+  </div>
+  <section class="grid live-grid">
+    {% for c in ctx.cards_live %}{{ render_card(c) }}{% endfor %}
+  </section>
+  {% endif %}
+
+  {% if ctx.cards_complete %}
+  <div class="section-title">
+    <h2><span class="dot complete"></span>Fold 0 complete</h2>
+    <span class="count complete">{{ ctx.cards_complete|length }}</span>
+    <span class="accent"></span>
+    <span class="meta">checkpoint_final.pth + validation/ on disk · ready for ensembling</span>
+  </div>
+  <section class="grid complete-grid">
+    {% for c in ctx.cards_complete %}{{ render_card(c) }}{% endfor %}
+  </section>
+  {% endif %}
+
+  {% if ctx.cards_paused %}
+  <div class="section-title">
+    <h2><span class="dot paused"></span>Paused &amp; not started</h2>
+    <span class="count">{{ ctx.cards_paused|length }}</span>
+    <span class="accent"></span>
+    <span class="meta">no metric writes for ≥ 10 min · no final checkpoint yet</span>
+  </div>
+  <section class="grid paused-grid">
+    {% for c in ctx.cards_paused %}{{ render_card(c) }}{% endfor %}
+  </section>
+  {% endif %}
+
+  <div class="section-title">
+    <h2>Per-structure dice — latest validation</h2>
+    <span class="accent"></span>
+    <span class="meta">{{ ctx.structure_table|length }} structures · sorted by dice</span>
+  </div>
+
+  <div class="struct-table-wrap">
+    <table class="struct-table">
+      <thead>
+        <tr><th>Structure</th><th>Dataset</th><th class="dice-bar-cell">Dice</th><th>Epoch</th><th>val_loss</th></tr>
+      </thead>
+      <tbody>
+      {% for r in ctx.structure_table %}
+        <tr class="{{ 'is-nan' if r.is_nan else '' }}">
+          <td class="struct-name">{{ r.canonical }}</td>
+          <td class="dataset-cell"><span class="ds-id">D{{ "%03d"|format(r.dataset_id) }}</span>{{ r.dataset_name }}</td>
+          <td class="dice-bar-cell">
+            <span class="dice-bar">
+              {% if not r.is_nan and r.dice is not none %}
+              <span class="fill" style="--w: {{ r.dice|pct }}%; width: {{ r.dice|pct }}%"></span>
+              {% endif %}
+              <span class="val">{{ 'NaN' if r.is_nan else r.dice|dice }}</span>
+            </span>
+          </td>
+          <td class="epoch-cell">{{ ('ep ' ~ r.epoch) if r.epoch is not none else '—' }}</td>
+          <td class="epoch-cell">{{ r.val_loss|loss }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="foot">
+    <strong>Generated</strong> {{ ctx.rendered_at_utc }} from <code>/data/model-factory-nfs/results/&lt;Dataset&gt;/.../fold_0/metrics.jsonl</code>.<br>
+    <strong>Source</strong> <code>src/modelfactory/dashboard/render.py</code> · template <code>src/modelfactory/dashboard/templates/factory_dashboard.html.j2</code> · specs <code>src/modelfactory/datasets/specs.py</code>.<br>
+    <strong>Refresh</strong> <code>modelfactory dashboard render</code> or <code>python -m modelfactory.dashboard.render --output docs/factory_dashboard.html</code>.<br>
+    <strong>MLflow</strong> <code>http://mlflow.model-factory.svc.cluster.local:5000</code> · artifacts <code>s3://mlflow-artifacts/</code> on factory MinIO.
+    {% if ctx.notes %}<div class="notes">notes: {{ ctx.notes|join(' · ') }}</div>{% endif %}
+  </div>
+
+</main>
+</body>
+</html>

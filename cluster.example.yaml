@@ -1,0 +1,147 @@
+# ─────────────────────────────────────────────────────────────────────────
+# model-factory cluster spec — copy to cluster.yaml and edit, then:
+#
+#     modelfactory infra validate          # check the spec
+#     modelfactory infra render            # write manifests to .render/infra/
+#     modelfactory infra apply --dry-run   # kubectl diff against the cluster
+#     modelfactory infra apply             # actually apply
+#
+# cluster.yaml is git-ignored. This file is the single source of truth that
+# parametrizes the Kueue queues, the KubeRay RayCluster, the MIG UUID/lease
+# ConfigMaps, the shared storage, and the public hostnames — so there are no
+# site-specific values hardcoded in the manifests.
+# ─────────────────────────────────────────────────────────────────────────
+apiVersion: modelfactory.io/v1
+kind: ClusterSpec
+
+cluster:
+  namespace: model-factory
+  # Label every factory-eligible node carries (rendered into the Kueue
+  # ResourceFlavor and every pod's nodeSelector). Label nodes with:
+  #   kubectl label node <node> factory.io/training=true
+  nodeSelector:
+    factory.io/training: "true"
+  # Node names to label during `infra bootstrap` (and, in MIG mode with the
+  # nvidia-smi provisioner, to partition). Leave empty if a cloud autoscaler
+  # manages nodes and you only select by label.
+  nodes: []
+
+# ── GPU mode — the central switch ────────────────────────────────────────
+gpu:
+  # "whole" → use full GPUs via the standard NVIDIA device plugin. Simplest;
+  #           this is what most clusters want. One Ray worker per GPU, each
+  #           requesting nvidia.com/gpu: 1.
+  # "mig"   → MIG-partition the cards and pin one Ray worker per slice by UUID
+  #           (bypasses the device plugin; needs a `nvidia-legacy` RuntimeClass).
+  mode: whole
+
+  # The value of the nvidia.com/gpu.product node label (set by NVIDIA GPU
+  # Feature Discovery). Change for A100 / L40S / RTX, etc.
+  product: NVIDIA-H100-80GB-HBM3
+
+  whole:
+    count: 4              # number of full GPUs to expose to the pool
+    runtimeClassName: ""  # "" = cluster default runtime (device plugin)
+
+  # MIG settings — used only when mode: mig. Example reproduces an 8×H100 box
+  # where GPU 0 is reserved and GPUs 1-7 are each split into two 3g.40gb slices.
+  mig:
+    runtimeClassName: nvidia-legacy
+    # nvidia-smi  → bootstrap runs `nvidia-smi mig` on the node(s)
+    # operator    → render the GPU-Operator mig-manager ConfigMap; you label the node
+    # preexisting → slices already exist; just discover their UUIDs
+    provisioner: preexisting
+    profile: "3g.40gb"
+    layout:
+      0: { mig: false }   # whole card — reserved (e.g. an inference/QA viewer)
+      1: { mig: 2 }
+      2: { mig: 2 }
+      3: { mig: 2 }
+      4: { mig: 2 }
+      5: { mig: 2 }
+      6: { mig: 2 }
+      7: { mig: 2 }
+    # Cards that feed the training pool, IN ORDER. Order fixes the slice→worker
+    # mapping (mig-0, mig-1, …); keep it stable across re-renders.
+    poolGpus: [1, 2, 3, 4, 5, 6, 7]
+    # Worker groups to render parked (replicas 0), e.g. a slice that needs a
+    # GI/CI rebuild.
+    disabledWorkerGroups: []
+
+# ── Ray worker sizing ────────────────────────────────────────────────────
+rayWorker:
+  image: nnunet-trainer:0.3.0-ray
+  rayVersion: "2.40.0"
+  clusterName: factory-ray
+  default:
+    cpuRequest: "18"
+    cpuLimit: "28"
+    memoryRequest: "48Gi"
+    memoryLimit: "160Gi"
+    nProcDa: "18"          # nnUNet augmenter worker processes
+    shmSize: "32Gi"        # /dev/shm for the MultiThreadedAugmenter
+    ramStageSize: "110Gi"  # /factory-ram tmpfs for staging preprocessed data
+    numCpusRay: "20"       # CPUs advertised to the Ray scheduler
+  # Per-GPU resource overrides (match by GPU index). Useful when some cards
+  # share a CPU-constrained host. Empty = every worker uses `default`.
+  tiers: []
+  head:
+    cpuRequest: "2"
+    cpuLimit: "4"
+    memoryRequest: "8Gi"
+    memoryLimit: "16Gi"
+    numCpusRay: "2"
+
+# ── Kueue quota ──────────────────────────────────────────────────────────
+kueue:
+  gpuQuota: null          # null = auto (MIG slice count, or whole.count)
+  cpuQuota: "196"         # leave headroom below allocatable for system pods
+  memoryQuota: "1700Gi"
+
+# ── Storage ──────────────────────────────────────────────────────────────
+storage:
+  storageClass: nfs-client    # any RWX-capable StorageClass
+  # hostPath  → single-node, bind-mount nfsHostRoot on the node (reference setup)
+  # pvc       → multi-node / managed k8s: use an RWX PVC (factory-data-pvc)
+  mount: pvc
+  nfsHostRoot: /data/model-factory-nfs   # used when mount: hostPath
+  nfsPodRoot: /factory                   # in-pod mount point (do not change lightly)
+  pvcSize: 10Ti
+  ramStage: true
+
+# ── Networking / hostnames ───────────────────────────────────────────────
+network:
+  # Public hostname for the QA viewer. "" → NodePort / port-forward only.
+  # NEVER hardcode this in manifests — set it here.
+  qaPublicHost: ""
+  mlflowPublicHost: ""
+  qaNodePort: 32443
+  ingressEnabled: false
+  ingressClassName: ""
+  # Site-specific: emit dnsConfig ndots:1 on Ray pods if your cluster's
+  # resolv.conf search domain hijacks *.svc.cluster.local. Default off.
+  dnsNdotsWorkaround: false
+  shortServiceNames: true
+
+# ── Registry / images ────────────────────────────────────────────────────
+registry:
+  host: ""                # "" = images live in the node's local containerd store
+  trainerTag: nnunet-trainer:0.3.0-ray
+  totalsegTag: totalseg-trainer:0.3.0-ray
+  qaViewerTag: model-qa:0.9.2
+
+# ── Service credentials (Secret names + endpoints) ───────────────────────
+secrets:
+  mlflowCredentialsSecret: mlflow-credentials
+  s3CredentialsSecret: factory-minio
+  s3Bucket: mlflow-artifacts
+  mlflowTrackingUri: http://mlflow:5000
+  s3EndpointUrl: http://factory-minio:9000
+
+# ── Optional site repair (Brev/GCE kubelet hostname-override) ────────────
+# You almost certainly do NOT need this. It exists only because one cloud
+# provider renames the OS hostname on reboot, breaking the kubelet client-cert
+# identity. See docs/bootstrap.md.
+siteRepair:
+  kubeletHostnameOverride: false
+  nodeName: ""

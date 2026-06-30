@@ -1,0 +1,79 @@
+{# CPU-only nnUNetv2_plan_and_preprocess Job for one dataset.
+
+   Substitutions:
+     dataset_id     numeric (e.g. 23)
+     spec_slug      kebab-case (e.g. "pelvis-male-prostate")
+     planner        default "nnUNetPlannerResEncXL" (40 GB target — fills the
+                    MIG 3g.40gb slices). Pass "nnUNetPlannerResEncL" (24 GB)
+                    only when you need leaner patches or memory headroom.
+#}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: preprocess-d{{ "%03d" | format(dataset_id) }}
+  namespace: model-factory
+  labels:
+    app.kubernetes.io/managed-by: modelfactory
+    factory.io/component: preprocess
+    factory.io/spec: {{ spec_slug }}
+    factory.io/dataset-id: "{{ dataset_id }}"
+    kueue.x-k8s.io/queue-name: factory-lq
+    # Preprocess is background prep — must NOT preempt fold training.
+    # See kueue_priority_class_lesson.md for the 2026-05-13 incident.
+    kueue.x-k8s.io/priority-class: hpo-sweep
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 604800
+  template:
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        factory.io/training: "true"
+      containers:
+      - name: preprocess
+        image: nnunet-trainer:2026-05-13
+        imagePullPolicy: IfNotPresent
+        # The pinned image predates the Dockerfile shims for the HighRes
+        # planner + factory trainers, so HighRes preprocess (-pl
+        # nnUNetPlannerResEncL_HighRes) can't find the planner. The
+        # runtime_shim_install.sh installs those shims from the live /code/src
+        # into nnunetv2, then exec's the command passed as args. Harmless for
+        # standard-planner (ResEncL/XL) generalist preprocess.
+        command: ["/code/scripts/runtime_shim_install.sh"]
+        args:
+        - "nnUNetv2_plan_and_preprocess"
+        - "-d"
+        - "{{ dataset_id }}"
+        - "-pl"
+        - "{{ planner | default('nnUNetPlannerResEncXL') }}"
+        # 3d_fullres only — we don't train 2D; skipping it halves
+        # preprocess wall-time and peak memory.
+        - "-c"
+        - "3d_fullres"
+        # workers default 8; pass np=4 for HighRes (finer spacing → bigger
+        # resampled volumes → more RAM per worker).
+        - "-np"
+        - "{{ np | default(8) }}"
+        - "-npfp"
+        - "{{ np | default(8) }}"
+        - "--verify_dataset_integrity"
+        env:
+        - { name: PYTHONPATH,          value: "/code/src" }
+        - { name: nnUNet_raw,          value: "/factory/datasets" }
+        - { name: nnUNet_preprocessed, value: "/factory/preprocessed" }
+        - { name: nnUNet_results,      value: "/factory/results" }
+        resources:
+          # cpu_request can be dropped well below np when the node is already
+          # CPU-saturated by training (worker pods hold their reservations):
+          # a small request schedules into the sliver, the high limit lets the
+          # np workers burst into whatever real cores the trainers aren't using.
+          requests: { cpu: "{{ cpu_request | default('16') }}", memory: "{{ memory_request | default('96Gi') }}" }
+          limits:   { cpu: "{{ cpu_limit | default('24') }}", memory: "{{ memory_limit | default('192Gi') }}" }
+        volumeMounts:
+        - { name: factory-data, mountPath: /factory }
+        - { name: code,         mountPath: /code, readOnly: true }
+      volumes:
+      - name: factory-data
+        hostPath: { path: /data/model-factory-nfs, type: Directory }
+      - name: code
+        hostPath: { path: /data/model-factory, type: Directory }

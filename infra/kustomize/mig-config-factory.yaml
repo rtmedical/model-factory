@@ -1,0 +1,45 @@
+# Example GPU-Operator MIG-manager config (operator provisioner path).
+#
+# Applied by the nvidia-mig-manager daemonset (already running in
+# nvidia-gpu-operator). Triggered by labelling the node:
+#
+#     kubectl label node <your-node> \
+#         nvidia.com/mig.config=factory-mixed-3g40 --overwrite
+#
+# Partition rationale (CLAUDE.md non-negotiable #2):
+#   GPU 0       — reserved for doserad; stays whole
+#   GPUs 1, 2   — vLLM medgemma tp=2; NVLink between them is load-bearing,
+#                 MIG MUST NOT be enabled here
+#   GPUs 3-7    — factory training pool, split into 3g.40gb × 2 = 10 slices
+#
+# Per-slice memory: 40 GB (comfortable for our 21.6 GB nnUNet folds).
+# Per-slice compute: 3/7 of the H100 SMs (~43%).
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: factory-mig-parted
+  namespace: nvidia-gpu-operator
+  labels:
+    app.kubernetes.io/managed-by: modelfactory
+    factory.io/component: mig-config
+data:
+  config.yaml: |
+    version: v1
+    mig-configs:
+      factory-mixed-3g40:
+        - devices: [0, 1, 2]
+          mig-enabled: false
+        - devices: [3, 4, 5, 6, 7]
+          mig-enabled: true
+          mig-devices:
+            "3g.40gb": 2
+      # Benchmark-only: GPU 3 in full-card mode, GPUs 4-7 still partitioned.
+      # Roll back by re-labeling the node to factory-mixed-3g40.
+      factory-gpu3-benchmark:
+        - devices: [0, 1, 2, 3]
+          mig-enabled: false
+        - devices: [4, 5, 6, 7]
+          mig-enabled: true
+          mig-devices:
+            "3g.40gb": 2

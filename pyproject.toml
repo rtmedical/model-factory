@@ -1,0 +1,92 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "modelfactory"
+version = "0.2.0"
+description = "Scalable Kubernetes training factory for medical-image segmentation (nnU-Net v2 + TotalSegmentator): convert, train, track, and QA."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "The model-factory authors" }]
+maintainers = [{ name = "The model-factory authors" }]
+keywords = [
+    "nnunet", "segmentation", "medical-imaging", "kubernetes", "mlflow",
+    "kueue", "ray", "totalsegmentator", "radiotherapy", "oar-segmentation",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Operating System :: POSIX :: Linux",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Healthcare Industry",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "click>=8.1",
+    "pydantic>=2.6",
+    "pyyaml>=6.0",
+    "jinja2>=3.1",
+    "kubernetes>=30.1",
+    "mlflow>=2.14",
+    "minio>=7.2",
+    "rich>=13.7",
+    "tabulate>=0.9",
+    # Header-only reads for QA cohort + viewer. mmap header access only —
+    # no voxel data is loaded, so this is cheap even at thousands of cases.
+    "nibabel>=5",
+]
+
+[project.urls]
+Homepage = "https://github.com/rtmedical/model-factory"
+Repository = "https://github.com/rtmedical/model-factory"
+Issues = "https://github.com/rtmedical/model-factory/issues"
+
+[project.optional-dependencies]
+trainer = [
+    # These are installed in the trainer container image (NGC base provides torch);
+    # listed here so `pip install -e .[trainer]` works for local dev.
+    "nnunetv2>=2.5,<3",
+    "batchgenerators==0.25",
+    "batchgeneratorsv2>=0.2",
+    "SimpleITK",
+    "torchmetrics>=1.4",
+    "prometheus-client>=0.20",
+]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=5",
+    "ruff>=0.5",
+    "mypy>=1.10",
+]
+
+[project.scripts]
+modelfactory = "modelfactory.cli:main"
+
+# Entry-point hook so `nnUNetv2_train -tr nnUNetTrainerMLflow` discovers our trainer
+# (nnUNetv2 looks under `nnunetv2.training.nnUNetTrainer.variants`; see
+# `modelfactory.trainers.registry` for the importable shim).
+[project.entry-points."nnunetv2.trainers"]
+nnUNetTrainerMLflow = "modelfactory.trainers.mlflow_trainer:nnUNetTrainerMLflow"
+nnUNetTrainerHPO    = "modelfactory.trainers.hpo_trainer:nnUNetTrainerHPO"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "RET"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = false
+ignore_missing_imports = true

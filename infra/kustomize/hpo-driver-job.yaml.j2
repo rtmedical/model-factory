@@ -1,0 +1,97 @@
+{# HPO sweep driver Job. Mirror of `ray-driver-job.yaml.j2` but the
+   command runs `modelfactory.hpo.runner` instead of `modelfactory.jobs.ray_driver`,
+   and the default Kueue priority is `hpo-sweep` (priority 10 — lowest) so a
+   running sweep never preempts `fold-training` or `interactive-eval` jobs.
+
+   Substitutions:
+     job_name        unique sweep job name (e.g. "hpo-hn-optic-nerves-20260514")
+     dataset         single DatasetSpec key (sweep varies hyperparams within it)
+     fold            fold index to sweep on (single fold; winner runs all 5)
+     parent_run_id   optional MLflow parent run id
+     num_trials      total sweep size
+     max_epochs      per-trial epoch cap (ASHA early-stops below this)
+     num_iters       num_iterations_per_epoch override (cheaper trials)
+     max_concurrent  cap on simultaneous trials (≤ Ray worker count)
+     trainer         nnUNetv2 trainer class (default "nnUNetTrainerHPO")
+     plans           plans identifier
+     searcher        optuna | random
+     scheduler       asha | none
+     priority        Kueue WorkloadPriorityClass (default "hpo-sweep")
+     image           trainer image
+     ray_address     ray://<head-svc>:10001 (Ray client port)
+#}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ job_name }}
+  namespace: model-factory
+  labels:
+    app.kubernetes.io/managed-by: modelfactory
+    app: factory-hpo-driver
+    kueue.x-k8s.io/queue-name: factory-lq
+    kueue.x-k8s.io/priority-class: {{ priority }}
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 604800
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: modelfactory
+        app: factory-hpo-driver
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        factory.io/training: "true"
+      containers:
+      - name: driver
+        image: {{ image }}
+        imagePullPolicy: IfNotPresent
+        command: ["python", "-m", "modelfactory.hpo.runner"]
+        args:
+        - "--ray-address"
+        - "{{ ray_address }}"
+        - "--dataset"
+        - "{{ dataset }}"
+        - "--fold"
+        - "{{ fold }}"
+        - "--parent-run-id"
+        - "{{ parent_run_id }}"
+        - "--num-trials"
+        - "{{ num_trials }}"
+        - "--max-epochs"
+        - "{{ max_epochs }}"
+        - "--num-iters"
+        - "{{ num_iters }}"
+        - "--max-concurrent"
+        - "{{ max_concurrent }}"
+        - "--trainer"
+        - "{{ trainer }}"
+        - "--plans"
+        - "{{ plans }}"
+        - "--searcher"
+        - "{{ searcher }}"
+        - "--scheduler"
+        - "{{ scheduler }}"
+        env:
+        # Short names only — see factory-ray-cluster.yaml comment.
+        - { name: MLFLOW_TRACKING_URI, value: "http://mlflow:5000" }
+        - { name: MLFLOW_S3_ENDPOINT_URL, value: "http://factory-minio:9000" }
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom: { secretKeyRef: { name: factory-minio, key: root-user } }
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom: { secretKeyRef: { name: factory-minio, key: root-password } }
+        - name: MLFLOW_TRACKING_USERNAME
+          valueFrom: { secretKeyRef: { name: mlflow-credentials, key: admin-username } }
+        - name: MLFLOW_TRACKING_PASSWORD
+          valueFrom: { secretKeyRef: { name: mlflow-credentials, key: admin-password } }
+        resources:
+          requests: { cpu: "10m",  memory: "256Mi" }
+          limits:   { cpu: "1",    memory: "2Gi"   }
+        volumeMounts:
+        - { name: factory-data, mountPath: /factory }
+        - { name: factory-src, mountPath: /opt/modelfactory/src, readOnly: true }
+      volumes:
+      - name: factory-data
+        hostPath: { path: /data/model-factory-nfs, type: Directory }
+      - name: factory-src
+        hostPath: { path: /data/model-factory/src, type: Directory }

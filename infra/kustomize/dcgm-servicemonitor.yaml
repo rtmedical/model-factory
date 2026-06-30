@@ -1,0 +1,21 @@
+# ServiceMonitor for the NVIDIA DCGM exporter that's already running in the
+# nvidia-gpu-operator namespace. Kube-prometheus-stack's Prometheus is configured
+# to discover ServiceMonitors cluster-wide.
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nvidia-dcgm-exporter
+  namespace: nvidia-gpu-operator
+  labels:
+    release: kps
+spec:
+  selector:
+    matchLabels:
+      app: nvidia-dcgm-exporter
+  namespaceSelector:
+    matchNames: [nvidia-gpu-operator]
+  endpoints:
+  - port: gpu-metrics
+    interval: 30s
+    path: /metrics

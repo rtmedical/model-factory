@@ -1,0 +1,103 @@
+# MLflow tracking server: experiment metrics + model registry.
+# Uses the in-cluster Postgres for the backend store and MinIO for artifacts.
+#
+# Chart: community-charts/mlflow (schema: backendStore.{postgres,...},
+# artifactRoot.s3, auth.existingAdminSecret, extraEnvVars as map).
+#
+# Credentials wiring:
+#   - Postgres password   ← factory-pg-postgresql secret (username + password keys)
+#   - MinIO root key/pass ← factory-minio secret (root-user + root-password keys)
+#   - MLflow admin pass   ← mlflow-credentials secret (admin-username + admin-password keys)
+# All three secrets pre-created by `kubectl apply -f infra/kustomize/secrets.yaml`
+# (done as the first step of `make deploy-mlflow`).
+
+replicaCount: 1
+
+backendStore:
+  databaseMigration: true
+  databaseConnectionCheck: true
+  postgres:
+    enabled: true
+    # NB: short service name (NOT the FQDN). On some clusters resolv.conf
+    # includes a public wildcard search domain that can hijack
+    # `*.svc.cluster.local` FQDNs; the short name resolves correctly via
+    # CoreDNS. If your cluster is unaffected, the FQDN works too. (See
+    # network.shortServiceNames / dnsNdotsWorkaround in cluster.yaml.)
+    host: factory-pg-postgresql
+    port: 5432
+    database: mlflow
+    user: mlflow
+    driver: psycopg2
+  # Pulls user + password from the secret we pre-created. The username field
+  # in the secret is read despite `backendStore.postgres.user` being set —
+  # the chart's existingDatabaseSecret overrides both fields when present.
+  existingDatabaseSecret:
+    name: factory-pg-postgresql
+    usernameKey: username
+    passwordKey: password
+
+artifactRoot:
+  proxiedArtifactStorage: false
+  s3:
+    enabled: true
+    bucket: mlflow-artifacts
+    existingSecret:
+      name: factory-minio
+      keyOfAccessKeyId: root-user
+      keyOfSecretAccessKey: root-password
+
+# Env passed to the MLflow server pod. Map (not list) — chart requirement.
+# MLFLOW_S3_ENDPOINT_URL: points artifact uploads at our in-cluster MinIO
+# (otherwise MLflow would try to talk to real AWS S3 and time out).
+extraEnvVars:
+  # Short name — same FQDN-hijack gotcha as backendStore.postgres.host above.
+  MLFLOW_S3_ENDPOINT_URL: "http://factory-minio:9000"
+  MLFLOW_S3_IGNORE_TLS: "true"
+  # MLflow 3.x rejects Host headers it doesn't recognise as a DNS rebinding
+  # mitigation. Whitelist the cluster-internal hostnames our clients use:
+  #   - `mlflow`, `mlflow.model-factory` (short / namespaced)
+  #   - `mlflow.model-factory.svc`, `mlflow.model-factory.svc.cluster.local`
+  #     (some clients still emit the FQDN even after we steer them to short)
+  #   - 127.0.0.1, localhost for port-forwarded UI access from the host.
+  # MLflow 3 compares the *full* Host header (host + port) against this list.
+  # Includes the :5000 form for in-cluster service access and the bare form
+  # for port-forwarded UI on localhost.
+  MLFLOW_SERVER_ALLOWED_HOSTS: "mlflow,mlflow:5000,mlflow.model-factory,mlflow.model-factory:5000,mlflow.model-factory.svc,mlflow.model-factory.svc.cluster.local,127.0.0.1,127.0.0.1:5000,127.0.0.1:8080,localhost,localhost:5000,localhost:8080"
+
+# extraArgs: map; chart kebabs the keys for `mlflow server --workers N`.
+# Schema enforces string values for every entry — quote the int.
+extraArgs:
+  workers: "4"
+  gunicornOpts: "--timeout 600"
+
+service:
+  enabled: true
+  type: ClusterIP
+  port: 5000
+  containerPort: 5000
+
+ingress:
+  enabled: false  # accessed via `kubectl port-forward` for v1; add ingress when TLS is ready
+
+# Schema requires string types for resource quantities.
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "4"
+    memory: "8Gi"
+
+# ServiceMonitor needs the monitoring.coreos.com/v1 CRD (kube-prometheus-stack).
+# Until that's deployed, leave it off — otherwise the chart manifest fails to
+# render against the API server.
+serviceMonitor:
+  enabled: false
+
+# Basic auth (single user `nvidia`). Pulls the password from mlflow-credentials.
+auth:
+  enabled: true
+  existingAdminSecret:
+    name: mlflow-credentials
+    usernameKey: admin-username
+    passwordKey: admin-password

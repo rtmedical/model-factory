@@ -1,0 +1,60 @@
+# MinIO: S3-compatible artifact store for MLflow + in-cluster Docker registry.
+# Standalone mode (single replica) — backed by nfs-client.
+#
+# Bitnami deprecated their free public images on 2025-08-28; the chart's
+# default `docker.io/bitnami/minio:...` tags 404. We point at the
+# `bitnamilegacy/*` mirror that still serves the old free tags.
+
+image:
+  repository: bitnamilegacy/minio
+clientImage:
+  repository: bitnamilegacy/minio-client
+
+# Console (web UI) — also affected by the Bitnami deprecation; point at the
+# legacy mirror, and lower its resource preset so it doesn't fight Ray
+# workers for CPU under the model-factory namespace cap.
+console:
+  enabled: true
+  image:
+    repository: bitnamilegacy/minio-object-browser
+
+mode: standalone
+
+auth:
+  rootUser: factoryadmin
+  # Pulls root password from the secret pre-created in
+  # infra/kustomize/secrets.yaml (data.root-password). The rootUser above
+  # is informational; the chart actually reads data.root-user from the
+  # existingSecret. Both must match.
+  existingSecret: factory-minio
+
+persistence:
+  enabled: true
+  storageClass: nfs-client
+  size: 500Gi
+
+defaultBuckets: "mlflow-artifacts,images,backups"
+
+resources:
+  requests:
+    cpu: 1
+    memory: 2Gi
+  limits:
+    cpu: 8
+    memory: 16Gi
+
+# Expose the API service inside the cluster as minio.model-factory.svc:9000
+service:
+  type: ClusterIP
+  ports:
+    api: 9000
+    console: 9001
+
+# Console (web UI) reachable via port-forward; we don't expose externally by default.
+ingress:
+  enabled: false
+
+metrics:
+  serviceMonitor:
+    enabled: false        # turn on after deploy-monitoring lands (needs monitoring.coreos.com CRDs)
+    namespace: monitoring

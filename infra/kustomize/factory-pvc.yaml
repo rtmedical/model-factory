@@ -1,0 +1,18 @@
+# Shared PVC for all training jobs.  Backed by NFS via the nfs-subdir-external-provisioner.
+# The provisioner carves a per-PVC subdir under its export, so this PVC will land
+# at something like /export/data/model-factory-default-factory-data-pvc-<uid>/.
+#
+# We don't request a specific size on NFS — the provisioner ignores it.  RWX so
+# all training pods can mount the same PVC concurrently.
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: factory-data-pvc
+  namespace: model-factory
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 10Ti

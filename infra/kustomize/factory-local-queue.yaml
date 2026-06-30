@@ -1,0 +1,14 @@
+# LocalQueue: per-namespace handle that jobs reference via label
+#   kueue.x-k8s.io/queue-name: factory-lq
+#
+# In v0.15+ this MUST be a label, not an annotation — the annotation form was
+# removed. The job will be admitted into factory-cq as soon as its resource
+# request fits within the remaining nominal quota.
+
+apiVersion: kueue.x-k8s.io/v1beta2
+kind: LocalQueue
+metadata:
+  name: factory-lq
+  namespace: model-factory
+spec:
+  clusterQueue: factory-cq

@@ -1,0 +1,94 @@
+{# Driver Job that fans a campaign of (dataset × fold) trainings out across the
+   factory-ray RayCluster via Ray Tune. The trainer image already ships the Ray
+   client + the modelfactory SDK, so we reuse it.
+
+   Substitutions:
+     job_name        unique campaign job name (e.g. "campaign-brain-mr-trio-20260513")
+     datasets        comma-separated DatasetSpec keys (e.g. "brain_mr_core_oar,...")
+     folds           comma-separated folds (e.g. "0,1,2,3,4")
+     parent_run_ids  comma-separated DatasetSpec.key=MLflowRunID pairs
+     trainer         nnUNetv2 trainer class (default "nnUNetTrainerMLflow")
+     plans           plans identifier (default "nnUNetResEncUNetLPlans" — fits 40 GB MIG slice)
+     max_concurrent  cap on simultaneous Ray Tune trials (<= 14 MIG slices; default 8)
+     image           trainer image with Ray installed
+     ray_address     ray://<head-svc>:10001 (Ray client port)
+#}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ job_name }}
+  namespace: model-factory
+  labels:
+    app.kubernetes.io/managed-by: modelfactory
+    app: factory-ray-driver
+    kueue.x-k8s.io/queue-name: factory-lq
+    kueue.x-k8s.io/priority-class: interactive-eval
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 604800
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/managed-by: modelfactory
+        app: factory-ray-driver
+    spec:
+      restartPolicy: Never
+      nodeSelector:
+        factory.io/training: "true"
+      containers:
+      - name: driver
+        image: {{ image }}
+        imagePullPolicy: IfNotPresent
+        command: ["python", "-m", "modelfactory.jobs.ray_driver"]
+        args:
+        - "--ray-address"
+        - "{{ ray_address }}"
+        - "--datasets"
+        - "{{ datasets }}"
+        - "--folds"
+        - "{{ folds }}"
+        - "--parent-run-ids"
+        - "{{ parent_run_ids }}"
+        - "--trainer"
+        - "{{ trainer }}"
+        - "--plans"
+        - "{{ plans }}"
+        - "--max-concurrent"
+        - "{{ max_concurrent }}"
+{% if continue_training %}
+        - "--continue"
+{% endif %}
+        env:
+        # Short names only — see factory-ray-cluster.yaml comment.
+        - { name: MLFLOW_TRACKING_URI, value: "http://mlflow:5000" }
+        - { name: MLFLOW_S3_ENDPOINT_URL, value: "http://factory-minio:9000" }
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom: { secretKeyRef: { name: factory-minio, key: root-user } }
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom: { secretKeyRef: { name: factory-minio, key: root-password } }
+        # MLflow basic-auth creds for the driver itself (creates parent runs)
+        # AND so worker pods inherit the user/pass for child run creation.
+        - name: MLFLOW_TRACKING_USERNAME
+          valueFrom: { secretKeyRef: { name: mlflow-credentials, key: admin-username } }
+        - name: MLFLOW_TRACKING_PASSWORD
+          valueFrom: { secretKeyRef: { name: mlflow-credentials, key: admin-password } }
+        resources:
+          # Truly minimal — the driver is a long-running orchestrator that
+          # mostly waits on Ray Tune. With the node booked to ~99% CPU by
+          # ray workers + preprocesses + d023 training, even 100m can fail
+          # to schedule because of kubelet's system reservation. 10m always
+          # fits and the driver almost never blocks on CPU.
+          requests: { cpu: "10m",  memory: "256Mi" }
+          limits:   { cpu: "1",    memory: "2Gi"   }
+        volumeMounts:
+        - { name: factory-data, mountPath: /factory }
+        # Mount the host repo source over the image's baked-in copy so the
+        # driver picks up code changes between trainer-image rebuilds. The
+        # editable install (`pip install -e /opt/modelfactory`) inside the
+        # image makes any change to /opt/modelfactory/src visible immediately.
+        - { name: factory-src, mountPath: /opt/modelfactory/src, readOnly: true }
+      volumes:
+      - name: factory-data
+        hostPath: { path: /data/model-factory-nfs, type: Directory }
+      - name: factory-src
+        hostPath: { path: /data/model-factory/src, type: Directory }

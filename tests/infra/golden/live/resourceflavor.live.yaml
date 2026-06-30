@@ -1,0 +1,38 @@
+apiVersion: v1
+items:
+- apiVersion: kueue.x-k8s.io/v1beta2
+  kind: ResourceFlavor
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kueue.x-k8s.io/v1beta2","kind":"ResourceFlavor","metadata":{"annotations":{},"name":"doserad-h100"},"spec":{"nodeLabels":{"nvidia.com/gpu.product":"NVIDIA-H100-80GB-HBM3"}}}
+    creationTimestamp: "2026-05-12T20:22:46Z"
+    finalizers:
+    - kueue.x-k8s.io/resource-in-use
+    generation: 1
+    name: doserad-h100
+    resourceVersion: "3000554"
+    uid: 58b743f1-27aa-4e1d-92c1-80235ae09e87
+  spec:
+    nodeLabels:
+      nvidia.com/gpu.product: NVIDIA-H100-80GB-HBM3
+- apiVersion: kueue.x-k8s.io/v1beta2
+  kind: ResourceFlavor
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"kueue.x-k8s.io/v1beta2","kind":"ResourceFlavor","metadata":{"annotations":{},"name":"flavor-h100"},"spec":{"nodeLabels":{"factory.io/training":"true","nvidia.com/gpu.product":"NVIDIA-H100-80GB-HBM3"}}}
+    creationTimestamp: "2026-05-12T18:51:39Z"
+    finalizers:
+    - kueue.x-k8s.io/resource-in-use
+    generation: 1
+    name: flavor-h100
+    resourceVersion: "2982584"
+    uid: 9c058112-b2be-4cc4-8675-5600a77b530e
+  spec:
+    nodeLabels:
+      factory.io/training: "true"
+      nvidia.com/gpu.product: NVIDIA-H100-80GB-HBM3
+kind: List
+metadata:
+  resourceVersion: ""

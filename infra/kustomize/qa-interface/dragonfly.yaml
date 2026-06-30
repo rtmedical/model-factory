@@ -1,0 +1,109 @@
+# Dragonfly pointer-cache for the QA viewer's inference + metrics +
+# meshes results. Drop-in replacement for the previous redis:7-alpine
+# Deployment — Dragonfly speaks RESP2/RESP3 so `redis-py` and the
+# `redis://qa-dragonfly:6379/0` URL stay identical.
+#
+# Why we swapped:
+#   - Multi-threaded (Redis is single-threaded). Headroom for parallel
+#     .vtp fetches as the cohort grows.
+#   - Lower memory footprint at our scale.
+#   - Non-blocking snapshotting (no fork() copy-on-write pause).
+#
+# Differences from Redis args:
+#   - `--save "60 1000"`               → `--snapshot_cron "0 3 * * *"`
+#       Daily 03:00 RDB to the NFS-backed PVC.
+#   - `--maxmemory-policy allkeys-lru` → `--cache_mode`
+#       Dragonfly doesn't honour Redis-style policy strings. `--cache_mode`
+#       enables proactive LRU eviction before --maxmemory is reached.
+#   - `--appendonly no` dropped — Dragonfly has no AOF, only snapshots.
+#
+# Single replica is sufficient: the cache is opportunistic (every value
+# is reproducible from /factory/qa-cohort/predictions/<id>/) so HA buys
+# nothing. The Recreate strategy is intentional — overlapping writers on
+# /data/dump.rdb would race.
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qa-dragonfly-data
+  namespace: model-factory
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qa-dragonfly
+  namespace: model-factory
+  labels:
+    app: qa-dragonfly
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: qa-dragonfly
+  template:
+    metadata:
+      labels:
+        app: qa-dragonfly
+    spec:
+      containers:
+      - name: dragonfly
+        image: docker.dragonflydb.io/dragonflydb/dragonfly:v1.38.1
+        imagePullPolicy: IfNotPresent
+        args:
+        - "--dir=/data"
+        # No extension → Dragonfly's native DF snapshot format (faster,
+        # parallel multi-file). Adding `.rdb` would force the legacy
+        # Redis RDB format and the server refuses to start mixing the two.
+        - "--dbfilename=dump"
+        - "--snapshot_cron=0 3 * * *"
+        - "--maxmemory=256mb"
+        - "--cache_mode"
+        # No --proactor_threads override — Dragonfly enforces
+        # ≥256 MiB per thread, and our --maxmemory cap is exactly 256
+        # MiB, so the cgroup-derived 1-thread default is the only
+        # combination that fits inside the pod's 512 MiB limit.
+        # The cache sees ~10 ops/s; one thread is ample headroom.
+        # If we ever raise --maxmemory above 512 MiB, set --proactor_threads
+        # to floor(maxmemory / 256 MiB) and bump the container memory limit.
+        ports:
+        - containerPort: 6379
+          name: resp
+        resources:
+          requests: { cpu: "100m", memory: "128Mi" }
+          limits:   { cpu: "1",    memory: "512Mi" }
+        readinessProbe:
+          tcpSocket: { port: 6379 }
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        livenessProbe:
+          tcpSocket: { port: 6379 }
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        volumeMounts:
+        - { name: dragonfly-data, mountPath: /data }
+      volumes:
+      - name: dragonfly-data
+        persistentVolumeClaim:
+          claimName: qa-dragonfly-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qa-dragonfly
+  namespace: model-factory
+spec:
+  type: ClusterIP
+  selector:
+    app: qa-dragonfly
+  ports:
+  - name: resp
+    port: 6379
+    targetPort: 6379
