@@ -1,5 +1,12 @@
 <div align="center">
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/brand/rtmedical-logo-white.svg">
+  <img src="docs/images/brand/rtmedical-logo.svg" alt="RT Medical" height="58"/>
+</picture>
+
+<br/><br/>
+
 # model-factory
 
 **A scalable, Kubernetes-native training factory for medical-image segmentation.**
@@ -18,14 +25,13 @@ turned into a queued, multi-GPU pipeline you can stand up on *your* cluster.
 <br/>
 
 <!--
-  NVIDIA acknowledgment badge.
-  This is a PLACEHOLDER image (docs/images/nvidia-inception-badge.png). Replace it
-  with the official "NVIDIA Inception Program" member badge from your Inception
-  membership portal (programs.nvidia.com). The plain NVIDIA logo requires written
-  approval; the Inception member badge is provided to members for display.
+  Official NVIDIA Inception Program member badge (colored RGB "for-screen"
+  variant), presented on a white card so its black keyline/text stay legible in
+  GitHub dark mode, per NVIDIA's light-background guidance. Source SVG lives in
+  docs/images/brand/nvidia-inception-program-badge.svg.
 -->
 <a href="https://www.nvidia.com/en-us/startups/">
-  <img src="docs/images/nvidia-inception-badge.png" alt="NVIDIA Inception Program Member" height="66"/>
+  <img src="docs/images/nvidia-inception-badge.png" alt="NVIDIA Inception Program member" height="80"/>
 </a>
 
 *Developed using accelerated-computing infrastructure provided through the*
@@ -312,3 +318,16 @@ project is not otherwise affiliated with or endorsed by NVIDIA.*
 [Apache-2.0](LICENSE). See [`NOTICE`](NOTICE) for third-party components and an
 important note on TotalSegmentator **MR** weights (CC-BY-NC-SA — non-commercial).
 The nnU-Net weights *you* train are yours.
+
+<br/>
+
+<div align="center">
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/brand/rtmedical-logo-white.svg">
+  <img src="docs/images/brand/rtmedical-logo.svg" alt="RT Medical" height="44"/>
+</picture>
+
+<sub>Built by **RT Medical** · developed through the **NVIDIA Inception** program</sub>
+
+</div>
