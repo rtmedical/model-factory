@@ -51,6 +51,8 @@ overlays/private/
 
 # Editor / agent / dev scratch
 .claude/
+.agents/
+skills-lock.json
 .playwright-mcp/
 
 # Large dev artifacts / screenshots that don't belong in the public tree
